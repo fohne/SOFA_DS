@@ -458,7 +458,7 @@ def sofa_record(command, cfg):
             print_info(cfg,"tried terminating strace")
         if cfg.dds:
             if ds_prof != None:
-                subprocess.Popen("%s/kill_process.sh %s"%(cfg.script_path, str(ds_prof.pid)), shell=True)
+                subprocess.Popen("%s/kill_bpf.sh %s"%(cfg.script_path, str(ds_prof.pid)), shell=True)
               #  subprocess.check_call(["sudo", "kill", str(ds_prof.pid)])
                 print_info(cfg,"tried terminating ds prof")
     except BaseException:
