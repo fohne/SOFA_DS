@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from bcc import BPF
+from bpf_ds_layer3 import bpf_layer3_txt
 from bpf_ds_layer4 import bpf_layer4_txt
 from bpf_ds_layer5 import bpf_layer5_txt
 
@@ -11,26 +12,28 @@ prog = """
 #include <linux/socket.h>
 #include <linux/uio.h>
 #include <linux/in.h>
+#include <linux/udp.h>
+#include <linux/ip.h>
 
-#define LAYER2 0x20
-#define LAYER3 0x30
-#define LAYER4 0x40
-#define LAYER5 0x50
-#define RETURN_FUN 0x80
+#define LAYER2 0x200
+#define LAYER3 0x300
+#define LAYER4 0x400
+#define LAYER5 0x500
+#define RETURN_FUN 0x1000
 
 struct data_t {
     u64 pid;
     u64 ts;
     char comm[TASK_COMM_LEN];
 
-    unsigned char net_layer;
+    unsigned int net_layer;
     u8 type;
 
-    u32 ip, hip;
-    u16 port, hport;
-
+    u32 d_ip, s_ip;
+    u16 d_port, s_port;
+    u16 csum;
     int len;  
-    char data[100];
+
 };
 BPF_PERF_OUTPUT(events);
 
@@ -44,7 +47,7 @@ int rx_action(struct pt_regs *ctx) {
     struct data_t data = {};
 
     pid_comm_ts(&data);
-    data.net_layer = 1;
+    data.net_layer = LAYER2|0x00;
 
     events.perf_submit(ctx, &data, sizeof(data));
     return 0;
@@ -54,7 +57,7 @@ int return_rx_action(struct pt_regs *ctx) {
     struct data_t data = {};
 
     pid_comm_ts(&data);
-    data.net_layer = -1;
+    data.net_layer = RETURN_FUN|LAYER2;
 
     events.perf_submit(ctx, &data, sizeof(data));
     return 0;
@@ -163,7 +166,7 @@ int return_data_ready(struct pt_regs *ctx) {
 // ip_send_skb
 
 
-
+%s
 
 
 
@@ -181,23 +184,29 @@ int return_data_ready(struct pt_regs *ctx) {
 %s // LAYER 4 CONTEXT
  
 %s // LAYER 5 CONTEXT
-""" % (bpf_layer4_txt, bpf_layer5_txt)
+""" % (bpf_layer3_txt, bpf_layer4_txt, bpf_layer5_txt)
 
 # load BPF program
 b = BPF(text=prog)
 
 b.attach_kprobe( event="sock_sendmsg", fn_name="_sock_send")
-#b.attach_kprobe( event="udp_sendmsg", fn_name="udp_send_msg")
-#b.attach_kretprobe( event="__skb_recv_udp", fn_name="skb_recv_udp") # Not working
 b.attach_kretprobe( event="sock_sendmsg", fn_name="_sock_send_return")
 
+b.attach_kprobe( event="udp_sendmsg", fn_name="udp_send_msg")
+b.attach_kprobe( event="ip_send_skb", fn_name="ip_send_skb")
+#b.attach_kretprobe( event="__skb_recv_udp", fn_name="skb_recv_udp") # Not working
+
+
 b.attach_kprobe(event="sock_recvmsg", fn_name="sock_recv")
-#b.attach_kretprobe(event="sock_recvmsg", fn_name="_sock_recv_return")
+b.attach_kretprobe(event="sock_recvmsg", fn_name="_sock_recv_return")
+
 b.attach_uprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uprobe")
 b.attach_uretprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uretprobe")
 
 
-#b.attach_kprobe(event="net_rx_action", fn_name="rx_action")
+b.attach_kprobe(event="net_rx_action", fn_name="rx_action")
+b.attach_kretprobe(event="net_rx_action", fn_name="return_rx_action")
+
 #b.attach_kprobe(event="__netif_receive_skb_one_core", fn_name="netif_receive")
 
 #b.attach_kprobe(event="ip_rcv", fn_name="ip_r")
@@ -209,7 +218,7 @@ b.attach_uretprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.lin
 #b.attach_kretprobe(event="__sys_recvfrom", fn_name="sock_recv")
 #b.attach_kretprobe( event="__sys_sendto", fn_name="sock_send")
 
-#b.attach_kretprobe(event="net_rx_action", fn_name="return_rx_action")
+
 #b.attach_kretprobe(event="__netif_receive_skb_one_core", fn_name="return_netif_receive")
 #b.attach_kretprobe(event="ip_rcv", fn_name="return_ip_r")
 #b.attach_kretprobe(event="udp_rcv", fn_name="return_udp_r")
@@ -227,8 +236,8 @@ print("""
 """)
 
 # HEADER
-print("%18s, %16s, %8s, %8s, %10s, %10s, %8s, %16s, %10s, %16s, %6s" % 
-     ("TIME(ns)", "COMM", "TYPE", "TGID", "TID", "NET LAYER", "PAYLOAD", "HOST_IP", "HOST_PORT", "IP", "PORT"))
+print("%18s, %16s, %8s, %8s, %10s, %10s, %8s, %16s, %10s, %16s, %6s, %10s" % 
+     ("TIME(ns)", "COMM", "TYPE", "TGID", "TID", "NET LAYER", "PAYLOAD", "HOST_IP", "HOST_PORT", "IP", "PORT", "CHECKSUM"))
 
 # process event
 start = 0
@@ -240,27 +249,24 @@ def print_event(cpu, data, size):
     pid = event.pid >> 32
     tid = event.pid & 0xFFFFFFFF
 
-    ip = str((event.ip)       & 0x000000FF) + "." + \
-         str((event.ip >>  8) & 0x000000FF) + "." + \
-         str((event.ip >> 16) & 0x000000FF) + "." + \
-         str((event.ip >> 24) & 0x000000FF)
+    d_ip = str((event.d_ip)       & 0x000000FF) + "." + \
+         str((event.d_ip >>  8) & 0x000000FF) + "." + \
+         str((event.d_ip >> 16) & 0x000000FF) + "." + \
+         str((event.d_ip >> 24) & 0x000000FF)
 
-    port = ((event.port >> 8) & 0x00FF) | ((event.port << 8) & 0xFF00)
+    d_port = ((event.d_port >> 8) & 0x00FF) | ((event.d_port << 8) & 0xFF00)
 
-    hip = str((event.hip)       & 0x000000FF) + "." + \
-          str((event.hip >>  8) & 0x000000FF) + "." + \
-          str((event.hip >> 16) & 0x000000FF)+ "." + \
-          str((event.hip >> 24) & 0x000000FF)
+    s_ip = str((event.s_ip)       & 0x000000FF) + "." + \
+          str((event.s_ip >>  8) & 0x000000FF) + "." + \
+          str((event.s_ip >> 16) & 0x000000FF)+ "." + \
+          str((event.s_ip >> 24) & 0x000000FF)
 
-    hport = ((event.hport >> 8) & 0x00FF) | ((event.hport << 8) & 0xFF00)
-    a = []
-    for i in event.data:
-        a.append(i)
+    s_port = ((event.s_port >> 8) & 0x00FF) | ((event.s_port << 8) & 0xFF00)
         
 
-    #if (str(port)[0:2] =='74'):
-    print("%18d, %16s, %8d, %8d, %8d, %10x, %8d, %16s, %10s, %16s, %6s" % 
-         (event.ts, event.comm, event.type, pid, tid, event.net_layer, event.len, hip, hport, ip, port))
+    #if ((str(s_port)[0:2] =='74') or (str(d_port)[0:2] =='74')):
+    print("%18d, %16s, %8d, %8d,   %8d, %10x, %8d, %16s, %10s, %16s, %6s, %10d" % 
+         (event.ts, event.comm, event.type, pid, tid, event.net_layer, event.len, s_ip, s_port, d_ip, d_port, event.csum))
 
 
 
