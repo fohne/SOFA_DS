@@ -1,5 +1,7 @@
 #!/usr/bin/python
 from bcc import BPF
+from bpf_ds_layer4 import bpf_layer4_txt
+from bpf_ds_layer5 import bpf_layer5_txt
 
 # define BPF program
 prog = """
@@ -13,6 +15,7 @@ prog = """
 #define LAYER2 0x20
 #define LAYER3 0x30
 #define LAYER4 0x40
+#define LAYER5 0x50
 #define RETURN_FUN 0x80
 
 struct data_t {
@@ -154,157 +157,44 @@ int return_data_ready(struct pt_regs *ctx) {
     return 0;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
-
-int _sock_send(struct pt_regs *ctx) {
-    struct data_t data = {};
-    struct socket * sock;
-
-    struct msghdr *msg;
-    struct sockaddr_in  skaddr;
-
-    sock = (struct socket *)PT_REGS_PARM1(ctx); 
-    struct sock *sk = sock->sk;
-    struct inet_sock *inet =  (struct inet_sock *)sk;
-    data.hip = inet -> inet_saddr;
-    data.hport = inet -> inet_sport;
-
-    msg = (struct msghdr *)PT_REGS_PARM2(ctx); 
-    size_t len = msg->msg_iter.count;
-    void * pmsg_name =  msg->msg_name;
-    bpf_probe_read(&skaddr, sizeof(struct sockaddr), pmsg_name);
-
- // u8* user_buff = (u8*)((msg->msg_iter).iov)->iov_base;
-
- // bpf_probe_read_user(data.data, 100, user_buff);
 
 
-    data.port = skaddr.sin_port;
-    data.ip = skaddr.sin_addr.s_addr;
-    data.len = len;
-    pid_comm_ts(&data);
-    data.net_layer = LAYER4|0x00;
 
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-
-int _sock_send_return (struct pt_regs *ctx) {
-    struct data_t data = {};
-
-    pid_comm_ts(&data);
-    data.net_layer = RETURN_FUN|LAYER4|0x00;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
+// ip_send_skb
 
 
-int sock_recv(struct pt_regs *ctx) {
-    struct data_t data = {};
-    struct msghdr *msg;
-    struct sockaddr_in  skaddr;
-    struct socket * sock;
-
-    sock = (struct socket *)PT_REGS_PARM1(ctx); 
-    struct sock *sk = sock->sk;
-    struct inet_sock *inet = (struct inet_sock *)sk;
-    data.hip = inet -> inet_saddr;
-    data.hport = inet -> inet_dport;
-
-    msg = (struct msghdr *)PT_REGS_PARM2(ctx);  
-    void * pmsg_name =  msg->msg_name;
-    bpf_probe_read(&skaddr, sizeof(struct sockaddr), pmsg_name);
 
 
-    //u8* user_buff = (u8*)((msg->msg_iter).iov)->iov_base;
-
-    //bpf_probe_read(data.data, 100, user_buff);
-
-    data.port = skaddr.sin_port;
-    data.ip = skaddr.sin_addr.s_addr;
-    pid_comm_ts(&data);
-    data.net_layer = LAYER4|0x01;
-
-    events.perf_submit( ctx, &data, sizeof(data));
-    return 0;
-}
 
 
-int _sock_recv_return(struct pt_regs *ctx) {
-    struct data_t data = {};
-    int len;
+/*  FUNCTION                KPROBE
 
-    len = PT_REGS_RC(ctx);
-    data.len = len;
-    pid_comm_ts(&data);
-    data.net_layer = RETURN_FUN|LAYER4|0x01;
+    sock_sendmsg    :       sock_send
+    r sock_sendmsg  :       _sock_send_return
 
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
+    udp_sendmsg     :       udp_send_msg
 
-
-int udp_send_msg(struct pt_regs *ctx) {
-
- // struct inet_sock *inet ;
- // struct udp_sock *up = udp_sk(sk);
-
-
-    struct msghdr* msg;
-    struct sockaddr_in  skaddr;
-    struct data_t data = {};
-
- // int = (struct inet_sock *)PT_REGS_PARM1(ctx);
- // inet->inet_saddr;
-    msg = (struct msghdr *)PT_REGS_PARM2(ctx);
-    size_t _len = PT_REGS_PARM3(ctx);
-
- // u8* user_buff = (u8*)((msg->msg_iter).iov)->iov_base;
-
- // bpf_probe_read(data.data, 100, user_buff);
-
-    size_t len = msg->msg_iter.count;
-    void * pmsg_name =  msg->msg_name;
-    bpf_probe_read(&skaddr, sizeof(struct sockaddr), pmsg_name);
-
-    data.port = skaddr.sin_port;
-    data.ip = skaddr.sin_addr.s_addr;
-    data.len = len;
-    pid_comm_ts(&data);
-    data.net_layer = LAYER4|0x00;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-
-
-    return 0;
-}
-
-int skb_recv_udp(struct pt_regs *ctx) {
-    struct data_t data = {};
-    struct sk_buff *skb;
-
-
-    skb = (struct sk_buff *)PT_REGS_RC(ctx);
-    data.len = skb->len;
-    pid_comm_ts(&data);
-    data.net_layer = LAYER4|0x01;
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-} 
-
-
-"""
+    sock_recvmsg    :       sock_recv
+    r sock_recvmsg  :       _sock_recv_return
+ 
+*/
+%s // LAYER 4 CONTEXT
+ 
+%s // LAYER 5 CONTEXT
+""" % (bpf_layer4_txt, bpf_layer5_txt)
 
 # load BPF program
 b = BPF(text=prog)
 
 b.attach_kprobe( event="sock_sendmsg", fn_name="_sock_send")
-#b.attach_kprobe(event="sock_recvmsg", fn_name="sock_recv")
 #b.attach_kprobe( event="udp_sendmsg", fn_name="udp_send_msg")
 #b.attach_kretprobe( event="__skb_recv_udp", fn_name="skb_recv_udp") # Not working
-#b.attach_kretprobe( event="sock_sendmsg", fn_name="_sock_send_return")
-b.attach_kretprobe(event="sock_recvmsg", fn_name="_sock_recv_return")
+b.attach_kretprobe( event="sock_sendmsg", fn_name="_sock_send_return")
+
+b.attach_kprobe(event="sock_recvmsg", fn_name="sock_recv")
+#b.attach_kretprobe(event="sock_recvmsg", fn_name="_sock_recv_return")
+b.attach_uprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uprobe")
+b.attach_uretprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uretprobe")
 
 
 #b.attach_kprobe(event="net_rx_action", fn_name="rx_action")
