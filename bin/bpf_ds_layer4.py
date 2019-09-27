@@ -129,12 +129,26 @@ int _sock_recv_return(struct pt_regs *ctx) {
 int skb_recv_udp(struct pt_regs *ctx) {
     struct data_t data = {};
     struct sk_buff *skb;
-
+    struct udphdr * uh;
+    struct iphdr * iph;
 
     skb = (struct sk_buff *)PT_REGS_RC(ctx);
-    data.len = skb->len;
+
+    uh = (struct udphdr *) (skb->head + skb->transport_header);
+    iph = (struct iphdr *) (skb->head + skb->network_header);
+
+    data.csum = uh -> check;
+    data.len = skb -> len;
+    data.d_port = uh ->dest;
+    data.s_port = uh ->source;
+    data.d_ip = iph -> saddr;
+    data.s_ip = iph -> daddr;
+
     pid_comm_ts(&data);
-    data.net_layer = LAYER4|0x11;
+    data.net_layer = RETURN_FUN|LAYER4|0x11;
+
+
+
     events.perf_submit(ctx, &data, sizeof(data));
     return 0;
 }

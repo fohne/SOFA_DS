@@ -160,15 +160,7 @@ int return_data_ready(struct pt_regs *ctx) {
     return 0;
 }
 
-
-
-
-// ip_send_skb
-
-
-%s
-
-
+%s // LAYER 5 CONTEXT
 
 /*  FUNCTION                KPROBE
 
@@ -183,8 +175,8 @@ int return_data_ready(struct pt_regs *ctx) {
 */
 %s // LAYER 4 CONTEXT
  
-%s // LAYER 5 CONTEXT
-""" % (bpf_layer3_txt, bpf_layer4_txt, bpf_layer5_txt)
+%s // LAYER 3 CONTEXT
+""" % (bpf_layer5_txt, bpf_layer4_txt, bpf_layer3_txt)
 
 # load BPF program
 b = BPF(text=prog)
@@ -194,7 +186,7 @@ b.attach_kretprobe( event="sock_sendmsg", fn_name="_sock_send_return")
 
 b.attach_kprobe( event="udp_sendmsg", fn_name="udp_send_msg")
 b.attach_kprobe( event="ip_send_skb", fn_name="ip_send_skb")
-#b.attach_kretprobe( event="__skb_recv_udp", fn_name="skb_recv_udp") # Not working
+b.attach_kretprobe( event="__skb_recv_udp", fn_name="skb_recv_udp") # Not working
 
 
 b.attach_kprobe(event="sock_recvmsg", fn_name="sock_recv")
@@ -207,22 +199,6 @@ b.attach_uretprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.lin
 b.attach_kprobe(event="net_rx_action", fn_name="rx_action")
 b.attach_kretprobe(event="net_rx_action", fn_name="return_rx_action")
 
-#b.attach_kprobe(event="__netif_receive_skb_one_core", fn_name="netif_receive")
-
-#b.attach_kprobe(event="ip_rcv", fn_name="ip_r")
-#b.attach_kprobe(event="udp_rcv", fn_name="udp_r")
-#b.attach_kprobe(event="sock_def_readable", fn_name="data_ready")
-
-#b.attach_kprobe(event="__sys_recvfrom", fn_name="recv_from")
-#b.attach_kprobe( event="__sys_sendto", fn_name="send_to")
-#b.attach_kretprobe(event="__sys_recvfrom", fn_name="sock_recv")
-#b.attach_kretprobe( event="__sys_sendto", fn_name="sock_send")
-
-
-#b.attach_kretprobe(event="__netif_receive_skb_one_core", fn_name="return_netif_receive")
-#b.attach_kretprobe(event="ip_rcv", fn_name="return_ip_r")
-#b.attach_kretprobe(event="udp_rcv", fn_name="return_udp_r")
-#b.attach_kprobe(event="sock_def_readable", fn_name="return_data_ready")
 
 
 print("""       
@@ -296,3 +272,22 @@ static inline bool ipv4_is_multicast(__be32 addr)
 	return (addr & htonl(0xf0000000)) == htonl(0xe0000000);
 }
 """
+
+
+
+#b.attach_kprobe(event="__netif_receive_skb_one_core", fn_name="netif_receive")
+
+#b.attach_kprobe(event="ip_rcv", fn_name="ip_r")
+#b.attach_kprobe(event="udp_rcv", fn_name="udp_r")
+#b.attach_kprobe(event="sock_def_readable", fn_name="data_ready")
+
+#b.attach_kprobe(event="__sys_recvfrom", fn_name="recv_from")
+#b.attach_kprobe( event="__sys_sendto", fn_name="send_to")
+#b.attach_kretprobe(event="__sys_recvfrom", fn_name="sock_recv")
+#b.attach_kretprobe( event="__sys_sendto", fn_name="sock_send")
+
+
+#b.attach_kretprobe(event="__netif_receive_skb_one_core", fn_name="return_netif_receive")
+#b.attach_kretprobe(event="ip_rcv", fn_name="return_ip_r")
+#b.attach_kretprobe(event="udp_rcv", fn_name="return_udp_r")
+#b.attach_kprobe(event="sock_def_readable", fn_name="return_data_ready")

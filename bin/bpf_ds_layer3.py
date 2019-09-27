@@ -13,7 +13,7 @@ int ip_send_skb (struct pt_regs *ctx) {
     iph = (struct iphdr *) (skb->head + skb->network_header);
 
     data.csum = uh -> check;
-    data.len = skb -> data_len;
+    data.len = skb -> len;
     data.d_port = uh ->dest;
     data.s_port = uh ->source;
     data.d_ip = iph -> saddr;
