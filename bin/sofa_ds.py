@@ -109,7 +109,7 @@ def ds_trace_preprocess(cfg, logdir, pid):
         
         # Translate to SOFA trace format
         index_tab = [0, -1, -1, 2, -1, 5, -1, -1, -1, -1, 3, -1, -1]
-        SOFA_trace_lists = formatted_lines_to_trace(ds_norm_time_lists, index_tab, len(ds_trace_field))
+#        SOFA_trace_lists = formatted_lines_to_trace(ds_norm_time_lists, index_tab, len(ds_trace_field))
         ds_df = pd.DataFrame(data=SOFA_trace_lists, columns=sofa_fieldnames)
 
         # Beaware the field used in x-y field for high chart should be numeric type 

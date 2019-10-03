@@ -26,7 +26,7 @@ struct data_t {
     u64 ts;
     char comm[TASK_COMM_LEN];
 
-    u64 sock_maddr;
+    u64 send_start_ts;
     unsigned int net_layer;
     u8 type;
 
@@ -183,18 +183,18 @@ int return_data_ready(struct pt_regs *ctx) {
 b = BPF(text=prog)
 
 b.attach_kprobe( event="sock_sendmsg", fn_name="_sock_send")
-b.attach_kretprobe( event="sock_sendmsg", fn_name="_sock_send_return")
 
-b.attach_kprobe( event="udp_sendmsg", fn_name="udp_send_msg")
+
+#b.attach_kprobe( event="udp_sendmsg", fn_name="udp_send_msg")
 b.attach_kprobe( event="ip_send_skb", fn_name="ip_send_skb")
+#b.attach_kretprobe( event="sock_sendmsg", fn_name="_sock_send_return")
+
 b.attach_kretprobe( event="__skb_recv_udp", fn_name="skb_recv_udp") 
-
-
-b.attach_kprobe(event="sock_recvmsg", fn_name="sock_recv")
+#b.attach_kprobe(event="sock_recvmsg", fn_name="sock_recv")
 b.attach_kretprobe(event="sock_recvmsg", fn_name="_sock_recv_return")
 
-b.attach_uprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uprobe")
-b.attach_uretprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uretprobe")
+#b.attach_uprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uprobe")
+#b.attach_uretprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uretprobe")
 
 
 #b.attach_kprobe(event="net_rx_action", fn_name="rx_action")
@@ -242,8 +242,8 @@ def print_event(cpu, data, size):
         
 
     #if ((str(s_port)[0:2] =='74') or (str(d_port)[0:2] =='74')):
-    print("%18d, %16s, %8d, %8d,   %8d, %10x, %8d, %16s, %10s, %16s, %6s, %10d, %10x" % 
-         (event.ts, event.comm, event.type, pid, tid, event.net_layer, event.len, s_ip, s_port, d_ip, d_port, event.csum, event.sock_maddr))
+    print("%18d, %16s, %8d, %8d,   %8d, %10x, %8d, %16s, %10s, %16s, %6s, %10d, %10d" % 
+         (event.ts, event.comm, event.type, pid, tid, event.net_layer, event.len, s_ip, s_port, d_ip, d_port, event.csum, event.send_start_ts))
 
 
 
