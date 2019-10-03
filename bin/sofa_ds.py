@@ -10,7 +10,7 @@ def cor_tab_init():
 #
 # output
 # result             processed traces
-def formatted_lines_to_trace(data_in, index_tab, field_num, funArray = False, name_info="empty"):
+def formatted_lines_to_trace(data_in, index_tab, field_num, name_info="empty"):
     from sofa_preprocess import trace_init
     result = []
 
@@ -41,43 +41,19 @@ def formatted_lines_to_trace(data_in, index_tab, field_num, funArray = False, na
                 line[index_tab[11]] if index_tab[11] != -1 else name_info,
                 line[index_tab[12]] if index_tab[12] != -1 else trace[12]
                 ]
-        # If there exist specific function to process each SOFA field in SOFA trace 
-        texs="""
-        if funArray:
-            break
-            for i in range(13):
-                if funArray[i] != '':
-                    print(funArray[i])
-                    fun() = funArray[i]
-                    fun(line[index_tab[i]], trace[i])
 
-        """
         result.append(trace)
     return result
 
 
 
-def ds_tracefun_11(data_in, trace):
- #      name
- # 1    net_rx_action
- # 2    netif_receive_skb
- # 3    ip_rcv
- # 4    udp_rcv
- # 5    sock_def_readable
-
-    netlayer_name_map = ['', 'net_rx_action', 'netif_receive_skb', 'ip_rcv', 'udp_rcv', 'sock_def_readable'] 
-    if data_in > 0:
-        trace = netlayer_name_map[data_in]
-    else:
-        trace = "return from " + netlayer_name_map[abs(data_in)]
-
-ds_tracefun = ['','','','','','','','','','','',ds_tracefun_11,'']
 
 def ds_trace_preprocess(cfg, logdir, pid):	
     from sofa_preprocess import sofa_fieldnames
     from sofa_preprocess import list_to_csv_and_traces
     
-    ds_trace_field = ['Timestamp','comm','pkt_type','tgid','net_layer', 'payload', 'data_len']
+    ds_trace_field = \
+['Timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer', 'payload',  'data_len', 's_ip', 's_port', 'd_ip', 'd_port']
     subprocess.call(['pwd'])
 
     subprocess.call(['cat %sds_trace  | grep "%s" > %sds_trace_%s'%(logdir,pid,logdir,pid)], shell=True)
@@ -117,14 +93,15 @@ def ds_trace_preprocess(cfg, logdir, pid):
                 print(tmp_line)
             tmp_line[0] = (int(tmp_line[0])  / 10**9) + offset - cfg.time_base
             ds_norm_time_lists.append(tmp_line)
-        print("there")
+
         # Filter out specified  pid
         ds_df = pd.DataFrame(data=ds_norm_time_lists, columns=ds_trace_field)
         filter = ds_df['tgid'] == str(pid)
         ds_df = ds_df[filter]
         ds_norm_time_lists = ds_df.values.tolist()
-        print("there2")
-# ds_trace_field = ['Timestamp','comm','pkt_type','tgid','net_layer', 'payload', 'data_len']
+
+# ds_trace_field = 
+# ['Timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer', 'payload',  'data_len', 's_ip', 's_port', 'd_ip', 'd_port']
 
 # 0: timestamp   # 3: deviceId   # 6: bandwidth   # 9:  pid     # 12: category
 # 1: event       # 4: copyKind   # 7: pkt_src     # 10: tid
@@ -132,7 +109,7 @@ def ds_trace_preprocess(cfg, logdir, pid):
         
         # Translate to SOFA trace format
         index_tab = [0, -1, -1, 2, -1, 5, -1, -1, -1, -1, 3, -1, -1]
-        SOFA_trace_lists = formatted_lines_to_trace(ds_norm_time_lists, index_tab, len(ds_trace_field), ds_tracefun)
+        SOFA_trace_lists = formatted_lines_to_trace(ds_norm_time_lists, index_tab, len(ds_trace_field))
         ds_df = pd.DataFrame(data=SOFA_trace_lists, columns=sofa_fieldnames)
 
         # Beaware the field used in x-y field for high chart should be numeric type 

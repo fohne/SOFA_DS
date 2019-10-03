@@ -11,6 +11,7 @@ int _sock_send(struct pt_regs *ctx) {
 
     sock = (struct socket *)PT_REGS_PARM1(ctx); 
     struct sock *sk = sock->sk;
+data.sock_maddr = (u64)sk;
     struct inet_sock *inet =  (struct inet_sock *)sk;
     data.s_ip = inet -> inet_saddr;
     data.s_port = inet -> inet_sport;
@@ -56,7 +57,7 @@ int udp_send_msg(struct pt_regs *ctx) {
 
     inet = (struct inet_sock *)PT_REGS_PARM1(ctx);
     msg = (struct msghdr *)PT_REGS_PARM2(ctx);
-
+data.sock_maddr = (u64)inet;
 
 
     data.s_ip = inet->inet_saddr;
@@ -101,8 +102,8 @@ int sock_recv(struct pt_regs *ctx) {
     bpf_probe_read(&skaddr, sizeof(struct sockaddr), pmsg_name);
 
 
-    data.s_ip = skaddr.sin_addr.s_addr; // if 0.0.0.0, receive any ip source.
-    data.s_port = skaddr.sin_port; // service port number
+//    data.s_ip = skaddr.sin_addr.s_addr; // if 0.0.0.0, receive any ip source.
+//    data.s_port = skaddr.sin_port; // service port number
 
     pid_comm_ts(&data);
     data.net_layer = LAYER4|0x10;
@@ -126,6 +127,9 @@ int _sock_recv_return(struct pt_regs *ctx) {
 }
 
 
+
+//struct sk_buff *__skb_recv_udp(struct sock *sk, unsigned int flags, int noblock, int *off, int *err)
+
 int skb_recv_udp(struct pt_regs *ctx) {
     struct data_t data = {};
     struct sk_buff *skb;
@@ -141,8 +145,8 @@ int skb_recv_udp(struct pt_regs *ctx) {
     data.len = skb -> len;
     data.d_port = uh ->dest;
     data.s_port = uh ->source;
-    data.d_ip = iph -> saddr;
-    data.s_ip = iph -> daddr;
+    data.d_ip = iph -> daddr;
+    data.s_ip = iph -> saddr;
 
     pid_comm_ts(&data);
     data.net_layer = RETURN_FUN|LAYER4|0x11;
