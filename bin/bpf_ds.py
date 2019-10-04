@@ -96,8 +96,8 @@ print("""
 """)
 
 # HEADER
-print("%18s, %16s, %8s, %8s, %10s, %10s, %8s, %16s, %10s, %16s, %6s, %10s" % 
-     ("TIME(ns)", "COMM", "TYPE", "TGID", "TID", "NET LAYER", "PAYLOAD", "HOST_IP", "HOST_PORT", "IP", "PORT", "CHECKSUM"))
+print("%18s, %16s, %8s, %8s, %10s, %10s, %8s, %16s, %10s, %16s, %6s, %10s,   %10s" % 
+     ("TIME(ns)", "COMM", "TYPE", "TGID", "TID", "NET LAYER", "PAYLOAD", "HOST_IP", "HOST_PORT", "IP", "PORT", "CHECKSUM", "START TIME(ns)"))
 
 # process event
 start = 0
@@ -125,7 +125,7 @@ def print_event(cpu, data, size):
         
 
     #if ((str(s_port)[0:2] =='74') or (str(d_port)[0:2] =='74')):
-    print("%18d, %16s, %8d, %8d,   %8d, %10x, %8d, %16s, %10s, %16s, %6s, %10d, %10d" % 
+    print("%18d, %16s, %8d, %8d,   %8d, %10x, %8d, %16s, %10s, %16s, %6s, %10d,   %10d" % 
          (event.ts, event.comm, event.type, pid, tid, event.net_layer, event.len, s_ip, s_port, d_ip, d_port, event.csum, event.send_start_ts))
 
 

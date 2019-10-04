@@ -305,8 +305,7 @@ if __name__ == "__main__":
         print_info(cfg,"CPU filter = %s:%s" % (filter.keyword, filter.color))
     for filter in cfg.gpu_filters:
         print_info(cfg,"GPU filter = %s:%s" % (filter.keyword, filter.color))
-    if cfg.dds:
-        cfg.logdir = cfg.logdir + "dds/"
+
     print_info(cfg,"logdir = %s" % cfg.logdir)
     if command != 'record' and not os.path.isdir(cfg.logdir):
         print_error('Cannot find %s'%cfg.logdir)

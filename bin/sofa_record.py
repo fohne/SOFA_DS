@@ -164,6 +164,8 @@ def sofa_record(command, cfg):
     p_pcm_memory = None
     p_pcm_numa = None 
     logdir = cfg.logdir
+    if cfg.dds:
+        logdir = cfg.logdir + "dds/"
     p_strace = None
     p_pystack = None
     print_info(cfg,'SOFA_COMMAND: %s' % command)
@@ -358,6 +360,7 @@ def sofa_record(command, cfg):
 
         if cfg.dds:
             dds_process = subprocess.Popen('%s' % command)
+            pid4dname = dds_process.pid
 
         if int(os.system('command -v perf 1> /dev/null')) == 0:
             ret = str(subprocess.check_output(['perf stat -e cycles ls 2>&1 '], shell=True))
@@ -504,6 +507,17 @@ def sofa_record(command, cfg):
         if p_strace != None:
             p_strace.kill()
             print_info(cfg,"tried killing strace")
-
+ 
         raise
     print_progress("End of Recording")
+    if cfg.dds:
+
+        os.system('mkdir -p %sdds_finish/%d' % (cfg.logdir, pid4dname))
+        os.system('mv %s* %sdds_finish/%d' % (logdir, cfg.logdir, pid4dname))
+        os.system('rm -r %s' % (logdir))
+       # os.system('sleep 2')
+       # os.system('mkdir %stmp' % (cfg.logdir))
+       # os.system('mv %s* %stmp/' % (logdir, cfg.logdir))
+       # os.system('mkdir %s%d' % (logdir, pid4dname))
+       # os.system('mv %stmp/* %s/%d/' % (cfg.logdir, logdir, pid4dname))
+       # os.system('rm -r %stmp' % (cfg.logdir))
