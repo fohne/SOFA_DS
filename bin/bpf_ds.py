@@ -34,131 +34,14 @@ struct data_t {
     u16 d_port, s_port;
     u16 csum;
     int len;  
-
 };
+
 BPF_PERF_OUTPUT(events);
 
 static void pid_comm_ts(struct data_t* data) {
     data->pid = bpf_get_current_pid_tgid();
     data->ts = bpf_ktime_get_ns();
     bpf_get_current_comm(&(data->comm), sizeof(data->comm));
-}
-
-int rx_action(struct pt_regs *ctx) {
-    struct data_t data = {};
-
-    pid_comm_ts(&data);
-    data.net_layer = LAYER2|0x00;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-
-int return_rx_action(struct pt_regs *ctx) {
-    struct data_t data = {};
-
-    pid_comm_ts(&data);
-    data.net_layer = RETURN_FUN|LAYER2;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-
-int netif_receive(struct pt_regs *ctx) {
-    struct data_t data = {};
-    struct sk_buff *skb;
-    skb = (struct sk_buff *) PT_REGS_PARM1(ctx);
-    data.len = skb->len;
-    data.len = skb->data_len;
-    data.type = (*skb).pkt_type;
-
-    pid_comm_ts(&data);
-    data.net_layer = 2;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-
-int return_netif_receive(struct pt_regs *ctx) {
-    struct data_t data = {};
-    struct sk_buff *skb;
-    skb = (struct sk_buff *) PT_REGS_PARM1(ctx);
-
-    pid_comm_ts(&data);
-    data.net_layer = -2;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-
-int ip_r(struct pt_regs *ctx) {
-    struct data_t data = {};
-    struct sk_buff *skb;
-    skb = (struct sk_buff *) PT_REGS_PARM1(ctx);
-    data.len = skb->len;
-    data.len = skb->data_len;
-    data.type = (*skb).pkt_type;
-    
-    pid_comm_ts(&data);
-    data.net_layer = 3;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-
-int return_ip_r(struct pt_regs *ctx) {
-    struct data_t data = {};
-
-    pid_comm_ts(&data);
-    data.net_layer = -3;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-
-int udp_r(struct pt_regs *ctx) {
-    struct data_t data = {};
-    struct sk_buff *skb;
-    skb = (struct sk_buff *) PT_REGS_PARM1(ctx);
-    data.len = skb->len;
-    data.len = skb->data_len;
-    data.type = (*skb).pkt_type;
-
-    pid_comm_ts(&data);
-    data.net_layer = 4;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-
-int return_udp_r(struct pt_regs *ctx) {
-    struct data_t data = {};
-
-    pid_comm_ts(&data);
-    data.net_layer = -4;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-
-int data_ready(struct pt_regs *ctx) {
-    struct data_t data = {};
-
-    pid_comm_ts(&data);
-    data.net_layer = 5;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-
-int return_data_ready(struct pt_regs *ctx) {
-    struct data_t data = {};
-
-    pid_comm_ts(&data);
-    data.net_layer = -5;
-
-    events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
 }
 
 %s // LAYER 5 CONTEXT
