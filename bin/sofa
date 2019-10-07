@@ -18,6 +18,7 @@ from sofa_preprocess import *
 from sofa_print import *
 from sofa_record import *
 from sofa_viz import *
+from sofa_ds import ds_preprocess
 
 if __name__ == "__main__":
     cfg = SOFA_Config()
@@ -318,7 +319,8 @@ if __name__ == "__main__":
     elif command == 'record':
         sofa_record(usr_command, cfg)
     elif command == 'preprocess':
-        sofa_preprocess(cfg)
+        if cfg.dds:
+            ds_preprocess(cfg)
     elif command == 'analyze':
         sofa_analyze(cfg)
     elif command == 'diff': # register a new command here 

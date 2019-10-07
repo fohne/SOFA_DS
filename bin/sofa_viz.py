@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import glob
 from functools import partial
 
 from sofa_config import *
@@ -9,9 +10,18 @@ from sofa_print import *
 
 def sofa_viz(cfg):
     sofa_home = os.path.dirname(os.path.realpath(__file__))
-    subprocess.Popen(
-        ['bash', '-c', 'cp %s/../sofaboard/* %s;' % (sofa_home, cfg.logdir)])
-
+    if cfg.dds:
+        dds_logpath = cfg.logdir + "dds_finish/"
+        os.chdir(dds_logpath)
+        nodes_record_dir = glob.glob('[0-9]*')
+        for i in range(len(nodes_record_dir)):
+            dds_logdir = './' + str(nodes_record_dir[i]) + '/'
+    else:
+        subprocess.Popen(
+            ['bash', '-c', 'cp %s/../sofaboard/* %s;' % (sofa_home, cfg.logdir)])
+    
+    
+     
     subprocess.Popen(['sleep', '2'])
     print_warning(
         'If your rendering timeline is slow, please try \033[4msofa report --plot_ratio=10\033[24m to downsample scatter points,')

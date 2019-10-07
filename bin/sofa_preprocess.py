@@ -26,7 +26,7 @@ from sofa_models import SOFATrace
 from sofa_print import *
 import random 
 
-from sofa_ds import *
+from sofa_ds_preprocess import ds_do_preprocess
 
 
 sofa_fieldnames = [
@@ -380,6 +380,8 @@ def sofa_preprocess(cfg):
     cfg.time_base = 0
     t_glb_gpu_base = 0
     logdir = cfg.logdir
+    os.system('pwd')
+    print(logdir)
     with open(logdir + 'misc.txt', 'r') as f:
         lines = f.readlines()
         if len(lines) == 4:
@@ -463,7 +465,6 @@ def sofa_preprocess(cfg):
     gpu_glb_memcpy_d2h_traces = []
     gpu_glb_memcpy_d2d_traces = []
     dds_traces = []
-    dds_traces_1 = []
 
     gpulog_mode = 'w'
     gpulog_header = 'True'
@@ -546,8 +547,8 @@ def sofa_preprocess(cfg):
         
             pid = pid[0]
             print("process id: %s"%pid)
-            dds_traces = ds_trace_preprocess(cfg, logdir, pid)
-            dds_traces_1 = ds_trace_preprocess(cfg, logdir, pid=23859)
+            dds_traces = ds_do_preprocess(cfg, logdir, pid)
+
 
 
 #==============================================================================
@@ -571,7 +572,7 @@ def sofa_preprocess(cfg):
             dev = m[1]
             m_last = diskstats[i-n_dev][:-1]
             m_last = m_last.split(',')
-
+            secsize=0
             # get sector size
             try:
                 f = open('/sys/block/'+dev+'/queue/hw_sector_size')
@@ -2095,21 +2096,21 @@ def sofa_preprocess(cfg):
     
     if cfg.dds:
         sofatrace = SOFATrace()
-        sofatrace.name = 'dds_ping'
-        sofatrace.title = 'dds_ping_trace'
+        sofatrace.name = 'dds_pub'
+        sofatrace.title = 'dds_pub_trace'
         sofatrace.color = 'rgba(255, 215, 0, 0.8)' #Gold
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'payload'
-        sofatrace.data = dds_traces
+        sofatrace.data = dds_traces[0]
         traces.append(sofatrace)
 
         sofatrace = SOFATrace()
-        sofatrace.name = 'dds_pong'
-        sofatrace.title = 'dds_pong_trace'
+        sofatrace.name = 'dds_sub'
+        sofatrace.title = 'dds_sub_trace'
         sofatrace.color = 'rgba(255, 33, 44, 0.8)'
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'payload'
-        sofatrace.data = dds_traces_1
+        sofatrace.data = dds_traces[1]
         traces.append(sofatrace)
      
 
