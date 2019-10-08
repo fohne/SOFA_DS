@@ -343,7 +343,7 @@ def gpu_trace_read(
     return trace
 
 
-def traces_to_json(traces, path, cfg):
+def traces_to_json(traces, path, cfg, pid):
     if len(traces) == 0:
         print_warning("Empty traces!")
         return
@@ -369,8 +369,10 @@ def traces_to_json(traces, path, cfg):
                         'y': trace.y_field},
                     inplace=True)
             f.write("\n\n")
-
-        f.write("sofa_traces = [ ")
+        if cfg.dds:
+            f.write("sofa_traces%s = [ "%pid)
+        else:
+            f.write("sofa_traces = [ ")
         for trace in traces:
             if len(trace.data) > 0:
                 f.write(trace.name + ",")
@@ -380,8 +382,7 @@ def sofa_preprocess(cfg):
     cfg.time_base = 0
     t_glb_gpu_base = 0
     logdir = cfg.logdir
-    os.system('pwd')
-    print(logdir)
+
     with open(logdir + 'misc.txt', 'r') as f:
         lines = f.readlines()
         if len(lines) == 4:
@@ -544,12 +545,10 @@ def sofa_preprocess(cfg):
             line = line.split()
             pid = line[0]
             pid = pid.split('/')
-        
             pid = pid[0]
-            print("process id: %s"%pid)
+            global ds_pid
+            ds_pid = pid
             dds_traces = ds_do_preprocess(cfg, logdir, pid)
-
-
 
 #==============================================================================
     with open('%s/diskstat.txt' % logdir) as f:
@@ -2218,6 +2217,7 @@ def sofa_preprocess(cfg):
         sofatrace.data = cuda_api_traces_viz
         traces.append(sofatrace)
 
-    traces_to_json(traces, logdir + 'report.js', cfg)
+    traces_to_json(traces, logdir + 'report.js', cfg, ds_pid)
+
     print_progress(
         "Export Overhead Dynamics JSON File of CPU, Network and GPU traces -- end")

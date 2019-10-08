@@ -66,7 +66,6 @@ def ds_do_preprocess(cfg, logdir, pid):
     
     ds_trace_field = \
 ['Timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer', 'payload',  'data_len', 's_ip', 's_port', 'd_ip', 'd_port', 'start_time']
-    subprocess.call(['pwd'])
 
     subprocess.call(['cat %sds_trace  | grep "%s" > %sds_trace_%s'%(logdir,pid,logdir,pid)], shell=True)
     # phase 2: use pid to filter out non-associated performance data
@@ -107,7 +106,8 @@ def ds_do_preprocess(cfg, logdir, pid):
             ds_norm_time_lists.append(tmp_line)
 
         # Filter out specified  pid
-        print("this is pid %s"%pid)
+
+
         ds_df = pd.DataFrame(data=ds_norm_time_lists, columns=ds_trace_field)
         ds_df["tgid"]= ds_df["tgid"].astype(int) 
         filter = ds_df['tgid'] == int(pid)
@@ -133,7 +133,7 @@ def ds_do_preprocess(cfg, logdir, pid):
         SOFA_trace_lists.append(formatted_lines_to_trace(ds_norm_time_lists[0], index_tab, len(ds_trace_field), name_info="tx"))
         SOFA_trace_lists.append(formatted_lines_to_trace(ds_norm_time_lists[1], index_tab, len(ds_trace_field), name_info="rx"))
         SOFA_trace_lists_tmp = []
-        print(SOFA_trace_lists[0])
+
         for i in range(len(SOFA_trace_lists)):
             ds_df = pd.DataFrame(data=SOFA_trace_lists[i], columns=sofa_fieldnames)
 

@@ -6,7 +6,7 @@ from functools import partial
 
 from sofa_config import *
 from sofa_print import *
-
+from ds_create_viz import ds_create_viz
 
 def sofa_viz(cfg):
     sofa_home = os.path.dirname(os.path.realpath(__file__))
@@ -14,8 +14,13 @@ def sofa_viz(cfg):
         dds_logpath = cfg.logdir + "dds_finish/"
         os.chdir(dds_logpath)
         nodes_record_dir = glob.glob('[0-9]*')
+        ds_create_viz(dds_logpath, nodes_record_dir)
+       
         for i in range(len(nodes_record_dir)):
             dds_logdir = './' + str(nodes_record_dir[i]) + '/'
+
+
+
     else:
         subprocess.Popen(
             ['bash', '-c', 'cp %s/../sofaboard/* %s;' % (sofa_home, cfg.logdir)])
@@ -30,6 +35,14 @@ def sofa_viz(cfg):
     print_hint('To change port, please run command: \033[4msofa viz --viz_port=PortNumber\033[24m')
     print_hint('Please open your browser to start profiling.')
     print_hint('After profiling, please enter Ctrl+C to exit.')
-    os.system(
+
+    if cfg.dds:
+        print(dds_logpath)
+        os.system('pwd')
+        os.system(
+        ' python3 -m http.server %d 2>&1 1> /dev/null;' %
+        (cfg.viz_port))
+    else:
+        os.system(
         'cd %s && python3 -m http.server %d 2>&1 1> /dev/null; cd -' %
         (cfg.logdir,cfg.viz_port))
