@@ -352,11 +352,12 @@ def sofa_record(command, cfg):
         if cfg.enable_strace:
             command_prefix = ' '.join(['strace', '-q', '-T', '-t', '-tt', '-f', '-o', '%s/strace.txt'%logdir]) + ' '
 
-        # record network stack
         if cfg.dds:
-            # recording    
-            with open('%sds_trace'%logdir,'w') as ds_tr:
-                ds_prof = subprocess.Popen(['sudo', '%s/bpf_ds.py'%cfg.script_path], stdout=ds_tr) 
+            # recording
+            with open(logdir+'/bpf_timebase.txt', 'w') as logfile:
+                subprocess.call('%s/real_mono_differ' % (cfg.script_path), shell=True, stderr=logfile, stdout=logfile)    
+            with open('%sds_trace'%logdir,'w') as ds_trace:
+                ds_prof = subprocess.Popen(['sudo', '%s/bpf_ds.py'%cfg.script_path], stdout=ds_trace) 
 
         if cfg.dds:
             dds_process = subprocess.Popen('%s' % command)
@@ -461,6 +462,7 @@ def sofa_record(command, cfg):
             print_info(cfg,"tried terminating strace")
         if cfg.dds:
             if ds_prof != None:
+                
                 subprocess.Popen("%s/kill_bpf.sh %s"%(cfg.script_path, str(ds_prof.pid)), shell=True)
               #  subprocess.check_call(["sudo", "kill", str(ds_prof.pid)])
                 print_info(cfg,"tried terminating ds prof")
@@ -515,9 +517,4 @@ def sofa_record(command, cfg):
         os.system('mkdir -p %sdds_finish/%d' % (cfg.logdir, pid4dname))
         os.system('mv %s* %sdds_finish/%d' % (logdir, cfg.logdir, pid4dname))
         os.system('rm -r %s' % (logdir))
-       # os.system('sleep 2')
-       # os.system('mkdir %stmp' % (cfg.logdir))
-       # os.system('mv %s* %stmp/' % (logdir, cfg.logdir))
-       # os.system('mkdir %s%d' % (logdir, pid4dname))
-       # os.system('mv %stmp/* %s/%d/' % (cfg.logdir, logdir, pid4dname))
-       # os.system('rm -r %stmp' % (cfg.logdir))
+

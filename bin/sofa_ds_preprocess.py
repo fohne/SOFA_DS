@@ -82,22 +82,19 @@ def ds_do_preprocess(cfg, logdir, pid):
 
     ds_df = pd.read_csv('%s/ds_trace_%s'%(logdir, pid), sep=',\s+', delimiter=',', encoding="utf-8",
                             skipinitialspace=True, header=0)
+    ds_df.sort_values('timestamp')
     ds_df = ds_df.dropna(axis=0, how='any')
-    # Normalize traces time
-    with open(logdir + 'perf_timebase.txt') as f:
-        lines = f.readlines()
-        if len(lines) <= 3:
-            print_warning('Recorded progrom is too short.')
-            perf_timebase_uptime = 0 
-            perf_timebase_unix = 0 
-        elif lines[0].find('WARNING') != -1:
-            perf_timebase_uptime = 0 
-            perf_timebase_unix = 0 
-        else:
-            perf_timebase_uptime = float(lines[-2].split()[2].split(':')[0])
-            perf_timebase_unix = float(lines[-1].split()[0])
 
-    offset = perf_timebase_unix - perf_timebase_uptime
+    # Normalize traces time
+    bpf_timebase_uptime = 0 
+    bpf_timebase_unix = 0 
+    with open(logdir + 'bpf_timebase.txt') as f:
+        lines = f.readlines()
+        bpf_timebase_unix = float(lines[-1].split(',')[0])
+        bpf_timebase_uptime = float(lines[-1].split(',')[1].rstrip())
+            
+
+    offset = bpf_timebase_unix - bpf_timebase_uptime
 
     ds_norm_time_lists = []
     ds_raw_lines = ds_df.values.tolist()
