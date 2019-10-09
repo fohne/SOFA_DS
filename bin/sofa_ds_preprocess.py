@@ -134,11 +134,8 @@ def ds_do_preprocess(cfg, logdir, pid):
     SOFA_trace_lists.append(formatted_lines_to_trace(ds_norm_time_lists[1], sofa_trace_index))
     SOFA_trace_lists.append(trace_calculate_bandwidth(ds_norm_time_lists[0]))
     SOFA_trace_lists.append(trace_calculate_bandwidth(ds_norm_time_lists[1]))
-    SOFA_trace_lists_tim = []
-    for line in SOFA_trace_lists[1]:
-        line[0] +=  4.039107
-        SOFA_trace_lists_tim.append(line)
-    SOFA_trace_lists[1] = SOFA_trace_lists_tim
+
+
 
         # Convert to csv format which SOFA used to be stored as SOFA trace class  
     return [

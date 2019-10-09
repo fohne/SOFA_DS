@@ -257,6 +257,14 @@ def sofa_record(command, cfg):
         else:
             perf_options = ''
 
+        if cfg.dds:
+            with open('%sds_trace'%logdir,'w') as ds_trace:
+                ds_prof = subprocess.Popen(['sudo', '%s/bpf_ds.py'%cfg.script_path], stdout=ds_trace) 
+                #subprocess.call('sudo %s/bpf_ds.py' % (cfg.script_path), shell=True, stderr=ds_trace, stdout=ds_trace)
+
+            dds_process = subprocess.Popen('%s' % command)
+            pid4dname = dds_process.pid
+        
         subprocess.call('cp /proc/kallsyms %s/' % (logdir), shell=True )
         subprocess.call('chmod +w %s/kallsyms' % (logdir), shell=True )
 
@@ -354,14 +362,10 @@ def sofa_record(command, cfg):
 
         if cfg.dds:
             # recording
-            with open(logdir+'/bpf_timebase.txt', 'w') as logfile:
-                subprocess.call('%s/real_mono_differ' % (cfg.script_path), shell=True, stderr=logfile, stdout=logfile)    
-            with open('%sds_trace'%logdir,'w') as ds_trace:
-                ds_prof = subprocess.Popen(['sudo', '%s/bpf_ds.py'%cfg.script_path], stdout=ds_trace) 
+            bpf_timebase =  open(logdir + '/bpf_timebase.txt', 'w')
+            subprocess.call('%s/real_mono_differ' % (cfg.script_path), shell=True, stderr=bpf_timebase, stdout=bpf_timebase)
 
-        if cfg.dds:
-            dds_process = subprocess.Popen('%s' % command)
-            pid4dname = dds_process.pid
+            
 
         if int(os.system('command -v perf 1> /dev/null')) == 0:
             ret = str(subprocess.check_output(['perf stat -e cycles ls 2>&1 '], shell=True))
