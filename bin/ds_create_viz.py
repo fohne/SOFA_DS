@@ -18,7 +18,7 @@ def ds_create_viz(dds_logpath, nodes_record_dir):
     f.close
     replace_string = ''
     for i in range(len(nodes_record_dir)):
-        pre_index = pre_index + '\n        <div id="container%s" ></div>' % nodes_record_dir[i]
+        pre_index = pre_index + '\n        <div id="container%s" style="min-width: 310px; height: 400px; max-width: 90%%; margin: 0 auto"></div>' % nodes_record_dir[i]
         pre_index = pre_index + '\n        <script src="report%s.js"></script>' % nodes_record_dir[i]
         pre_index = pre_index + '\n        <script src="timeline%s.js"></script>\n' % nodes_record_dir[i]
 

@@ -2097,9 +2097,9 @@ def sofa_preprocess(cfg):
         sofatrace = SOFATrace()
         sofatrace.name = 'dds_pub'
         sofatrace.title = 'dds_pub_trace'
-        sofatrace.color = 'rgba(255, 215, 0, 0.8)' #Gold
+        sofatrace.color = 'rgba(0, 120, 255, 0.8)'
         sofatrace.x_field = 'timestamp'
-        sofatrace.y_field = 'payload'
+        sofatrace.y_field = 'deviceId'
         sofatrace.data = dds_traces[0]
         traces.append(sofatrace)
 
@@ -2108,10 +2108,26 @@ def sofa_preprocess(cfg):
         sofatrace.title = 'dds_sub_trace'
         sofatrace.color = 'rgba(255, 33, 44, 0.8)'
         sofatrace.x_field = 'timestamp'
-        sofatrace.y_field = 'payload'
+        sofatrace.y_field = 'deviceId'
         sofatrace.data = dds_traces[1]
         traces.append(sofatrace)
-     
+
+        sofatrace = SOFATrace()
+        sofatrace.name = 'dds_tx_band'
+        sofatrace.title = 'dds_pub_band'
+        sofatrace.color = 'rgba(255, 33, 44, 0.8)'
+        sofatrace.x_field = 'timestamp'
+        sofatrace.y_field = 'bandwidth'
+        sofatrace.data = dds_traces[2]
+        traces.append(sofatrace)
+        sofatrace = SOFATrace()
+        sofatrace.name = 'dds_rx_band'
+        sofatrace.title = 'dds_sub_band'
+        sofatrace.color = 'rgba(255, 33, 44, 0.8)'
+        sofatrace.x_field = 'timestamp'
+        sofatrace.y_field = 'bandwidth'
+        sofatrace.data = dds_traces[3]
+        traces.append(sofatrace)
 
     if cfg.enable_encode_decode:
         sofatrace = SOFATrace()
