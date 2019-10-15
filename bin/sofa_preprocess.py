@@ -383,6 +383,7 @@ def sofa_preprocess(cfg):
     t_glb_gpu_base = 0
     logdir = cfg.logdir
 
+
     with open(logdir + 'misc.txt', 'r') as f:
         lines = f.readlines()
         if len(lines) == 4:
@@ -403,6 +404,7 @@ def sofa_preprocess(cfg):
                             stdout=logfile)
 
     with open(logdir + 'sofa_time.txt') as f:
+
         lines = f.readlines()
         cfg.time_base = float(lines[0]) + cfg.cpu_time_offset
         print_info(cfg,'Time offset applied to timestamp (s):' + str(cfg.cpu_time_offset))

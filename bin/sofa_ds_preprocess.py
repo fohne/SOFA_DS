@@ -73,12 +73,12 @@ def ds_do_preprocess(cfg, logdir, pid):
     from sofa_preprocess import sofa_fieldnames
     from sofa_preprocess import list_to_csv_and_traces
     
-    ds_trace_field = ['Timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer', 
+    ds_trace_field = ['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer', 
                       'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time']
 
     subprocess.call(['echo "timestamp, comm, pkt_type, tgid, tid, net_layer, payload, s_ip,\
                       s_port, d_ip, d_port, checksum, start_time" > %sds_trace_%s'%(logdir, pid)], shell=True)
-    subprocess.call(['cat %sds_trace  | grep "%s" >> %sds_trace_%s'%(logdir, pid, logdir, pid)], shell=True)
+    subprocess.call(['cat %sds_trace  | grep " %s" >> %sds_trace_%s'%(logdir, pid, logdir, pid)], shell=True)
 
     ds_df = pd.read_csv('%s/ds_trace_%s'%(logdir, pid), sep=',\s+', delimiter=',', encoding="utf-8",
                             skipinitialspace=True, header=0)
@@ -93,7 +93,6 @@ def ds_do_preprocess(cfg, logdir, pid):
         bpf_timebase_unix = float(lines[-1].split(',')[0])
         bpf_timebase_uptime = float(lines[-1].split(',')[1].rstrip())
             
-
     offset = bpf_timebase_unix - bpf_timebase_uptime
 
     ds_norm_time_lists = []
@@ -106,16 +105,20 @@ def ds_do_preprocess(cfg, logdir, pid):
 
     ds_df = pd.DataFrame(data=ds_norm_time_lists, columns=ds_trace_field)
 
-    # Filter out non-associated performance data with pid
+    # make sure data is correct fit in pid field.
     filter = ds_df['tgid'] == int(pid)
     ds_df = ds_df[filter]
+    ds_df.to_csv(logdir + 'ds_trace_%s'%pid, mode='w', index=False, float_format='%.9f')
 
     filter = ds_df['net_layer'] == 300
     ds_tx_df = ds_df[filter]
+    ds_tx_df.to_csv(logdir + 'ds_trace_pub_%s'%pid, mode='w', index=False, float_format='%.9f')
+
     filter = ds_df['net_layer'] == 1410
     ds_rx_df = ds_df[filter]
-    ds_norm_time_lists = [ds_tx_df.values.tolist(), ds_rx_df.values.tolist()]
+    ds_rx_df.to_csv(logdir + 'ds_trace_sub_%s'%pid, mode='w', index=False, float_format='%.9f')
 
+    ds_norm_time_lists = [ds_tx_df.values.tolist(), ds_rx_df.values.tolist()]
 
 # DS trace 
 # 0: Timestamp   # 3: tgid       # 6: payload     # 9: d_ip       # 12: start_time
@@ -135,8 +138,6 @@ def ds_do_preprocess(cfg, logdir, pid):
     SOFA_trace_lists.append(trace_calculate_bandwidth(ds_norm_time_lists[0]))
     SOFA_trace_lists.append(trace_calculate_bandwidth(ds_norm_time_lists[1]))
 
-
-
         # Convert to csv format which SOFA used to be stored as SOFA trace class  
     return [
             list_to_csv_and_traces(logdir, SOFA_trace_lists[0], 'dds_trace_tx%s.csv'%pid, 'w'),
@@ -145,5 +146,83 @@ def ds_do_preprocess(cfg, logdir, pid):
             list_to_csv_and_traces(logdir, SOFA_trace_lists[3], 'dds_trace_rx_bandwidth%s.csv'%pid, 'w')
            ]
 
+def ds_find_sender(recv_iter, all_send_list):
+    recv_tmp = list(recv_iter)
+    recv_feature_pattern = str(recv_tmp[7]) + str(recv_tmp[8]) + str(recv_tmp[9]) + str(recv_tmp[10]) + str(recv_tmp[11])
+    #print(recv_feature_pattern)
+
+    for send_cnt in range(len(all_send_list)):
+        send_tmp = list(all_send_list[send_cnt])
+        send_feature_pattern = str(send_tmp[7]) + str(send_tmp[8]) + str(send_tmp[9]) + str(send_tmp[10]) + str(send_tmp[11])
+        #print(send_feature_pattern)
+        if (recv_feature_pattern == send_feature_pattern):
+            print(send_cnt)
+            break
+
+def ds_connect_preprocess(cfg):
+    #all_nodes_socket = []
+    node_pid = {}
+    all_send_socket = []
+    all_recv_socket = []
+    all_ds_df = pd.DataFrame([], columns=['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer',\
+                                          'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time'])
+
+    counter = 0
+    logdir = cfg.logdir
+
+    nodes_record_dir = glob.glob('[0-9]*')
+
+    for iter_dir in nodes_record_dir:
+        node_pid[iter_dir] = counter
+        send_socket = {}
+        recv_socket = {}
+
+        ds_df = pd.read_csv('%s/ds_trace_%s'%(iter_dir, iter_dir), sep=',\s+', delimiter=',', encoding="utf-8",
+                            skipinitialspace=True, header=0,float_precision='round_trip')
+        all_ds_df = pd.concat([ds_df, all_ds_df], ignore_index=True, sort=False)
+
+        with open('%s/ds_trace_pub_%s'%(iter_dir, iter_dir),'r') as f_pub:
+            f_pub.readline()        
+            for line in f_pub.readlines():
+                line = line.split(',')
+                name = str(line[7]) + ':' + str(line[8])
+                send_socket[name] = counter
+            f_pub.close()
+        all_send_socket.append(send_socket)
+
+        with open('%s/ds_trace_sub_%s'%(iter_dir, iter_dir),'r') as f_sub:
+            f_sub.readline()        
+            for line in f_sub.readlines():
+                line = line.split(',')
+                name = str(line[9]) + ':' + str(line[10])
+                recv_socket[name] = counter
+            f_sub.close()
+        all_recv_socket.append(recv_socket)
+
+        counter += 1
+
+    all_ds_df.sort_values(by='timestamp', inplace=True)
+    all_ds_list = all_ds_df.values.tolist()
+
+    filter = all_ds_df['net_layer'] == 300
+    all_send_df = all_ds_df[filter]
+    
+    filter = all_ds_df['net_layer'] == 1410
+    all_recv_df = all_ds_df[filter]
+
+
+    all_send_list = all_send_df.values.tolist()
+    all_recv_list = all_recv_df.values.tolist()
+    
+
+    for recv_iter in all_recv_list:
+        ds_find_sender(recv_iter, all_send_list)
+    
+
+        
+
+    pass
+    return node_pid, all_send_socket, all_recv_socket
+        
 
 

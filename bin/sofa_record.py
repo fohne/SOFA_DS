@@ -21,7 +21,6 @@ import pexpect
 
 from sofa_print import *
 
-
 def service_get_cpuinfo(logdir):
     next_call = time.time()
     while True:
@@ -258,9 +257,12 @@ def sofa_record(command, cfg):
             perf_options = ''
 
         if cfg.dds:
-            with open('%sds_trace'%logdir,'w') as ds_trace:
-                ds_prof = subprocess.Popen(['sudo', '%s/bpf_ds.py'%cfg.script_path], stdout=ds_trace) 
-                #subprocess.call('sudo %s/bpf_ds.py' % (cfg.script_path), shell=True, stderr=ds_trace, stdout=ds_trace)
+            #with open('%sds_trace'%logdir,'w') as ds_trace:
+            ds_prof = subprocess.call(['sudo', 'sleep', '1'])
+            #ds_prof = subprocess.call(['sudo', '%s/bpf_ds.py'%cfg.script_path,'>','%sds_trace&'%logdir])
+            os.system('sudo %s/bpf_ds.py > %sds_trace&'%(cfg.script_path,logdir))
+                #ds_prof = subprocess.Popen(['sudo', '%s/bpf_ds.py'%cfg.script_path], stdout=ds_trace) 
+
 
             dds_process = subprocess.Popen('%s' % command)
             pid4dname = dds_process.pid
@@ -465,11 +467,9 @@ def sofa_record(command, cfg):
             p_strace.terminate()
             print_info(cfg,"tried terminating strace")
         if cfg.dds:
-            if ds_prof != None:
-                
-                subprocess.Popen("%s/kill_bpf.sh %s"%(cfg.script_path, str(ds_prof.pid)), shell=True)
-              #  subprocess.check_call(["sudo", "kill", str(ds_prof.pid)])
-                print_info(cfg,"tried terminating ds prof")
+            os.system('sudo pkill bpf')
+            #subprocess.Popen("%s/kill_bpf.sh"%(cfg.script_path), shell=True)
+     
     except BaseException:
         print("Unexpected error:", sys.exc_info()[0])
         if p_tcpdump != None:
