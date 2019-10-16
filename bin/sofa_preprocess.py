@@ -759,6 +759,13 @@ def sofa_preprocess(cfg):
             vm_wa_list.append(np.empty((len(sofa_fieldnames), 0)).tolist())
             vm_st_list.append(np.empty((len(sofa_fieldnames), 0)).tolist())
             t = 0
+            t_begin = 0
+
+            if not cfg.absolute_timestamp:
+                t_begin = t - cfg.cpu_time_offset
+            else:
+                t_begin = t_begin + t
+
             for i in range(len(lines)):
                 if lines[i].find('procs') == - \
                         1 and lines[i].find('swpd') == -1:
@@ -783,10 +790,7 @@ def sofa_preprocess(cfg):
                     vm_wa = float(fields[15]) + 1e-5
                     vm_st = float(fields[16]) + 1e-5
 
-                    if cfg.absolute_timestamp:
-                        t_begin = t + cfg.time_base
-                    else:
-                        t_begin = t
+                    
                     
                     deviceId = cpuid = -1
                     event = -1
@@ -941,7 +945,7 @@ def sofa_preprocess(cfg):
                         cpuid]
                     vm_sys_list.append(trace)
 
-                    t = t + 1
+                    t_begin = t_begin + 1
 
             vm_bi_traces = list_to_csv_and_traces(
                 logdir, vm_bi_list, 'vmstat.csv', 'w')

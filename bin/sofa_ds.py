@@ -36,8 +36,10 @@ def ds_preprocess(cfg):
         time_fd = open('%s/sofa_time.txt' % nodes_record_dir[i])
         unix_time = time_fd.readline()
         unix_time.rstrip()
+        cfg.cpu_time_offset = 0
         if (unix_time > min_time):
-            cfg.cpu_time_offset = float(unix_time) - float(min_time)
+            cfg.cpu_time_offset = float(min_time) - float(unix_time)
+            print(cfg.cpu_time_offset)
 
         cfg.logdir = './' + str(nodes_record_dir[i]) + '/'
         sofa_preprocess(cfg)

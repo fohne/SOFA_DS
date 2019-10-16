@@ -104,6 +104,8 @@ def ds_do_preprocess(cfg, logdir, pid):
         ds_norm_time_lists.append(line)
 
     ds_df = pd.DataFrame(data=ds_norm_time_lists, columns=ds_trace_field)
+    ds_df['checksum'] = ds_df['checksum'].astype(int)
+    ds_df['d_port'] = ds_df['d_port'].astype(int)
 
     # make sure data is correct fit in pid field.
     filter = ds_df['tgid'] == int(pid)
@@ -116,7 +118,7 @@ def ds_do_preprocess(cfg, logdir, pid):
 
     filter = ds_df['net_layer'] == 1410
     ds_rx_df = ds_df[filter]
-    ds_rx_df.to_csv(logdir + 'ds_trace_sub_%s'%pid, mode='w', index=False, float_format='%.9f')
+    ds_rx_df.to_csv(logdir + 'ds_trace_sub_%s'%pid, mode='w', index=False, float_format='%.9f') 
 
     ds_norm_time_lists = [ds_tx_df.values.tolist(), ds_rx_df.values.tolist()]
 
@@ -146,18 +148,30 @@ def ds_do_preprocess(cfg, logdir, pid):
             list_to_csv_and_traces(logdir, SOFA_trace_lists[3], 'dds_trace_rx_bandwidth%s.csv'%pid, 'w')
            ]
 
-def ds_find_sender(recv_iter, all_send_list):
-    recv_tmp = list(recv_iter)
+def ds_find_sender(recv_iter, all_send_index_list, send_find, latency, negative=False):
+
+    recv_tmp = recv_iter[0]
     recv_feature_pattern = str(recv_tmp[7]) + str(recv_tmp[8]) + str(recv_tmp[9]) + str(recv_tmp[10]) + str(recv_tmp[11])
     #print(recv_feature_pattern)
 
-    for send_cnt in range(len(all_send_list)):
-        send_tmp = list(all_send_list[send_cnt])
+    for send_cnt in range(len(all_send_index_list)):
+        send_tmp = list(all_send_index_list[send_cnt][0])
         send_feature_pattern = str(send_tmp[7]) + str(send_tmp[8]) + str(send_tmp[9]) + str(send_tmp[10]) + str(send_tmp[11])
         #print(send_feature_pattern)
         if (recv_feature_pattern == send_feature_pattern):
-            print(send_cnt)
-            break
+            send_select = all_send_index_list[send_cnt][1]
+            if not negative:
+                if (0 < recv_tmp[0] - send_tmp[0] < latency):              
+                    if not send_find[send_select]:
+                        return send_cnt
+            else:
+                latency = 0 - latency
+                if (latency < recv_tmp[0] - send_tmp[0] < 0):
+                    if not send_find[send_select]:
+                        return send_cnt
+
+        
+    return False
 
 def ds_connect_preprocess(cfg):
     #all_nodes_socket = []
@@ -178,7 +192,7 @@ def ds_connect_preprocess(cfg):
         recv_socket = {}
 
         ds_df = pd.read_csv('%s/ds_trace_%s'%(iter_dir, iter_dir), sep=',\s+', delimiter=',', encoding="utf-8",
-                            skipinitialspace=True, header=0,float_precision='round_trip')
+                            skipinitialspace=True, header=0, float_precision='round_trip')
         all_ds_df = pd.concat([ds_df, all_ds_df], ignore_index=True, sort=False)
 
         with open('%s/ds_trace_pub_%s'%(iter_dir, iter_dir),'r') as f_pub:
@@ -213,15 +227,113 @@ def ds_connect_preprocess(cfg):
 
     all_send_list = all_send_df.values.tolist()
     all_recv_list = all_recv_df.values.tolist()
-    
+    send_find = [False] * len(all_send_list)
+    recv_find = [False] * len(all_recv_list)
+    all_send_index_list = []
+    all_recv_index_list = []
 
-    for recv_iter in all_recv_list:
-        ds_find_sender(recv_iter, all_send_list)
-    
+    for index in range(len(all_send_list)):
+        all_send_index_list.append([all_send_list[index], index])
 
-        
+    for index in range(len(all_recv_list)):
+        all_recv_index_list.append([all_recv_list[index], index])
 
-    pass
+    recv_cnt_skip = 0
+    latency = 1
+    retry = True
+    negative = False
+    pre_sent_count = 0
+    negative_max = 0
+    positive_max = 0
+    pre_recv_count = 0
+    while retry:
+
+        retry = False
+        #for recv_cnt in range(recv_cnt_skip, len(all_recv_index_list)):
+        for recv_cnt in range(recv_cnt_skip, len(all_recv_index_list)):
+            #print('here')
+            send_cnt = ds_find_sender(all_recv_index_list[recv_cnt], all_send_index_list, send_find, latency, negative)
+            if send_cnt:
+                send_select = all_send_index_list[send_cnt][1]
+                recv_select = all_recv_index_list[recv_cnt][1]
+                if negative and (latency == 1):
+                    abs_max = abs(all_send_index_list[send_cnt][0][0] - all_recv_index_list[recv_cnt][0][0])
+                    if (abs_max > negative_max): 
+                        negative_max = abs_max
+                        print(all_send_index_list[send_cnt][0])
+                        print(all_recv_index_list[recv_cnt][0])
+                else:
+                    if not negative and (latency == 1):
+                        if (all_send_index_list[send_cnt][0][3] != all_recv_index_list[recv_cnt][0][3]):
+                            abs_max = abs(all_send_index_list[send_cnt][0][0] - all_recv_index_list[recv_cnt][0][0])
+                            if (abs_max > positive_max): 
+                                positive_max = abs_max
+                                print(all_send_index_list[send_cnt][0])
+                                print(all_recv_index_list[recv_cnt][0])
+                        
+                del all_send_index_list[send_cnt]
+                del all_recv_index_list[recv_cnt]
+                send_find[send_select] = True
+                recv_find[recv_select] = True
+                recv_cnt_skip = recv_cnt
+                retry = True
+                break
+
+
+        if (not retry) and True:
+            #print(len(all_send_index_list))
+            #print(len(all_recv_index_list))
+            if not negative:
+                print("positive latency %d %d"%(latency, len(all_send_index_list)))
+                if (latency < 1):
+
+                    retry = True
+                    latency += 1
+                    recv_cnt_skip = 0
+                else:
+                    pre_sent_count = len(all_send_index_list)
+                    pre_recv_count = len(all_recv_index_list)
+                    negative = True
+                    retry = True
+                    latency = 1
+                    recv_cnt_skip = 0
+            else:
+                print("negative latency %d %d"%(latency,pre_sent_count - len(all_send_index_list)))
+                print(pre_recv_count - len(all_recv_index_list))
+                pre_sent_count = len(all_send_index_list)
+                pre_recv_count = len(all_recv_index_list)
+                if (latency < 2):
+                    retry = True
+                    latency += 1
+                    recv_cnt_skip = 0
+
+    result_send_list = []
+    result_recv_list = []
+    for i in range(len(all_send_index_list)):
+        #print(all_send_index_list[i][0])
+        result_send_list.append(all_send_index_list[i][0])
+
+    for i in range(len(all_recv_index_list)):
+        result_recv_list.append(all_recv_index_list[i][0])
+
+
+    ds_df_pub = pd.DataFrame(result_send_list, columns=['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer',\
+                                          'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time'])
+    ds_df_sub = pd.DataFrame(result_recv_list, columns=['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer',\
+                                          'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time'])
+
+    all_ds_df = pd.concat([ds_df_sub, ds_df_pub], ignore_index=True, sort=False)
+    all_ds_df.sort_values(by='timestamp', inplace=True)
+    all_ds_list = all_ds_df.values.tolist()
+    for i in range(len(all_ds_list)):
+        pass
+        #print(all_ds_list[i])  
+    #print(len(result_send_list))
+    #print(len(result_recv_list))
+    print(positive_max)
+    print(negative_max)
+
+                 
     return node_pid, all_send_socket, all_recv_socket
         
 
