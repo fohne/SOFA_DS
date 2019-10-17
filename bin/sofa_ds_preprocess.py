@@ -11,6 +11,14 @@ import subprocess
 
 from sofa_config import *
 
+
+
+def ds_cnct_trace_init():	
+#field = name, x, y
+    name, x, y  =  '', None, None
+    trace = [name, x, y]
+    return trace
+
 def cor_tab_init():
     cor_tab = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
     return cor_tab
@@ -52,8 +60,8 @@ def trace_calculate_bandwidth(data_in):
     total_payload = 0
     first_ts = 0
     curr_ts = 0
-    i = 1
-
+    i = 1 
+    
     for line in data_in:
         trace = trace_init()
 
@@ -148,7 +156,7 @@ def ds_do_preprocess(cfg, logdir, pid):
             list_to_csv_and_traces(logdir, SOFA_trace_lists[3], 'dds_trace_rx_bandwidth%s.csv'%pid, 'w')
            ]
 
-def ds_find_sender(recv_iter, all_send_index_list, send_find, latency, negative=False):
+def ds_find_sender(recv_iter, all_send_index_list, send_find, latency, negative,total_latency):
 
     recv_tmp = recv_iter[0]
     recv_feature_pattern = str(recv_tmp[7]) + str(recv_tmp[8]) + str(recv_tmp[9]) + str(recv_tmp[10]) + str(recv_tmp[11])
@@ -163,26 +171,56 @@ def ds_find_sender(recv_iter, all_send_index_list, send_find, latency, negative=
             if not negative:
                 if (0 < recv_tmp[0] - send_tmp[0] < latency):              
                     if not send_find[send_select]:
-                        return send_cnt
+                        total_latency += recv_tmp[0] - send_tmp[0] 
+                        return total_latency, send_cnt
             else:
                 latency = 0 - latency
                 if (latency < recv_tmp[0] - send_tmp[0] < 0):
                     if not send_find[send_select]:
-                        return send_cnt
+                        total_latency += recv_tmp[0] - send_tmp[0]
+                        return total_latency, send_cnt
 
         
-    return False
+    return total_latency, False
+
+
+def create_cnct_trace(cnct_list, is_sender, node_pid):
+    cnct_trace_tmp = list(cnct_list)
+
+    y_counter = node_pid[str(cnct_trace_tmp[3])]
+    
+    name = ''
+    x = cnct_trace_tmp[0]
+    y = 0
+
+    if is_sender:
+        name = str(cnct_trace_tmp[7]) + ':' + str(cnct_trace_tmp[8]) + ' | checksum = ' + str(cnct_trace_tmp[11])
+        y = (y_counter * 12 + 8)*0.0001
+    else:
+        name = str(cnct_trace_tmp[9]) + ':' + str(cnct_trace_tmp[10]) + ' | checksum = ' + str(cnct_trace_tmp[11])
+        y = (y_counter * 12 + 4)*0.0001
+
+    trace = ds_cnct_trace_init()
+    trace = [name, x, y]
+
+    return trace
+    
+    
+
 
 def ds_connect_preprocess(cfg):
     #all_nodes_socket = []
-    node_pid = {}
+    node_pid = {} # used to find out the location of list where  
     all_send_socket = []
     all_recv_socket = []
     all_ds_df = pd.DataFrame([], columns=['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer',\
                                           'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time'])
+    
 
     counter = 0
     logdir = cfg.logdir
+
+    print(logdir)
 
     nodes_record_dir = glob.glob('[0-9]*')
 
@@ -238,6 +276,8 @@ def ds_connect_preprocess(cfg):
     for index in range(len(all_recv_list)):
         all_recv_index_list.append([all_recv_list[index], index])
 
+    cnct_trace = []
+
     recv_cnt_skip = 0
     latency = 1
     retry = True
@@ -246,31 +286,44 @@ def ds_connect_preprocess(cfg):
     negative_max = 0
     positive_max = 0
     pre_recv_count = 0
+    total_latency = 0
     while retry:
-
         retry = False
-        #for recv_cnt in range(recv_cnt_skip, len(all_recv_index_list)):
+
         for recv_cnt in range(recv_cnt_skip, len(all_recv_index_list)):
-            #print('here')
-            send_cnt = ds_find_sender(all_recv_index_list[recv_cnt], all_send_index_list, send_find, latency, negative)
+            total_latency, send_cnt = ds_find_sender(all_recv_index_list[recv_cnt], all_send_index_list, send_find, \
+                                          latency, negative,total_latency)
+
             if send_cnt:
                 send_select = all_send_index_list[send_cnt][1]
                 recv_select = all_recv_index_list[recv_cnt][1]
+
+                # find the max latency btween sender and receiver in given interval
                 if negative and (latency == 1):
                     abs_max = abs(all_send_index_list[send_cnt][0][0] - all_recv_index_list[recv_cnt][0][0])
                     if (abs_max > negative_max): 
                         negative_max = abs_max
-                        print(all_send_index_list[send_cnt][0])
-                        print(all_recv_index_list[recv_cnt][0])
+                        #print(all_send_index_list[send_cnt][0])
+                        #print(all_recv_index_list[recv_cnt][0])
                 else:
                     if not negative and (latency == 1):
                         if (all_send_index_list[send_cnt][0][3] != all_recv_index_list[recv_cnt][0][3]):
                             abs_max = abs(all_send_index_list[send_cnt][0][0] - all_recv_index_list[recv_cnt][0][0])
                             if (abs_max > positive_max): 
                                 positive_max = abs_max
-                                print(all_send_index_list[send_cnt][0])
-                                print(all_recv_index_list[recv_cnt][0])
-                        
+                                #print(all_send_index_list[send_cnt][0])
+                                #print(all_recv_index_list[recv_cnt][0])
+
+                cnct_trace.append(
+                                  create_cnct_trace(all_send_index_list[send_cnt][0], 1, node_pid)
+                                 )
+                cnct_trace.append(
+                                  create_cnct_trace(all_recv_index_list[recv_cnt][0], 0, node_pid)
+                                 )
+                cnct_trace.append(
+                ds_cnct_trace_init()
+                                 )
+
                 del all_send_index_list[send_cnt]
                 del all_recv_index_list[recv_cnt]
                 send_find[send_select] = True
@@ -279,12 +332,12 @@ def ds_connect_preprocess(cfg):
                 retry = True
                 break
 
-
+        # scale out the searching domain
         if (not retry) and True:
             #print(len(all_send_index_list))
             #print(len(all_recv_index_list))
             if not negative:
-                print("positive latency %d %d"%(latency, len(all_send_index_list)))
+                #print("positive latency %d %d"%(latency, len(all_send_index_list)))
                 if (latency < 1):
 
                     retry = True
@@ -298,8 +351,8 @@ def ds_connect_preprocess(cfg):
                     latency = 1
                     recv_cnt_skip = 0
             else:
-                print("negative latency %d %d"%(latency,pre_sent_count - len(all_send_index_list)))
-                print(pre_recv_count - len(all_recv_index_list))
+                #print("negative latency %d %d"%(latency,pre_sent_count - len(all_send_index_list)))
+                #print(pre_recv_count - len(all_recv_index_list))
                 pre_sent_count = len(all_send_index_list)
                 pre_recv_count = len(all_recv_index_list)
                 if (latency < 2):
@@ -330,10 +383,25 @@ def ds_connect_preprocess(cfg):
         #print(all_ds_list[i])  
     #print(len(result_send_list))
     #print(len(result_recv_list))
-    print(positive_max)
-    print(negative_max)
+    #print(positive_max)
+    #print(negative_max)
+    #print(float(total_latency))
+    #print(cnct_trace)
+    from sofa_preprocess import traces_to_json
+    from sofa_models import SOFATrace
+    # traces_to_json(traces, path, cfg, pid)
+    cnct_trace = pd.DataFrame(cnct_trace, columns = ['name','x','y'])
+    traces = []
+    sofatrace = SOFATrace()
+    sofatrace.name = 'ds_connection_trace'
+    sofatrace.title = 'DS CONNECTION VIEW'
+    sofatrace.color = 'DarkSlateGray'
+    sofatrace.x_field = 'x'
+    sofatrace.y_field = 'y'
+    sofatrace.data = cnct_trace
+    traces.append(sofatrace)      
+    traces_to_json(traces, 'connect_view_data.js', cfg, '_connect')
 
-                 
     return node_pid, all_send_socket, all_recv_socket
         
 

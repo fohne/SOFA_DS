@@ -56,7 +56,8 @@ Highcharts.chart('container', {
                 headerFormat: '<b>Category: {series.name}</b><br>',
                 pointFormat: '[{point.x} s]  Y:{point.y}, Name: {point.name}'
             },
-            turboThreshold: 0 
+            turboThreshold: 0,            
+            boostThreshold:1 
 
         }
     },

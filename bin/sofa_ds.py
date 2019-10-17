@@ -14,9 +14,16 @@ from sofa_config import *
 from sofa_preprocess import sofa_preprocess
 from sofa_ds_preprocess import ds_connect_preprocess
 
+class DSTrace:
+    data = []
+    name = []
+    title = []
+    color = []
+    x_field = []
+    y_field = []
 
 def ds_preprocess(cfg):
-
+    save_logdir = cfg.logdir
     dds_logpath = cfg.logdir + "dds_finish/"
     os.chdir(dds_logpath)
     nodes_record_dir = glob.glob('[0-9]*')
@@ -43,7 +50,7 @@ def ds_preprocess(cfg):
 
         cfg.logdir = './' + str(nodes_record_dir[i]) + '/'
         sofa_preprocess(cfg)
-
+        cfg.logdir = save_logdir
     # return node_pid, all_send_socket, all_recv_socket
     node_pid, all_send_socket, all_recv_socket = ds_connect_preprocess(cfg)
 

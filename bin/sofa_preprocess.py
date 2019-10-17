@@ -2121,15 +2121,16 @@ def sofa_preprocess(cfg):
         sofatrace = SOFATrace()
         sofatrace.name = 'dds_tx_band'
         sofatrace.title = 'dds_pub_band'
-        sofatrace.color = 'rgba(255, 33, 44, 0.8)'
+        sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'bandwidth'
         sofatrace.data = dds_traces[2]
         traces.append(sofatrace)
+
         sofatrace = SOFATrace()
         sofatrace.name = 'dds_rx_band'
         sofatrace.title = 'dds_sub_band'
-        sofatrace.color = 'rgba(255, 33, 44, 0.8)'
+        sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'bandwidth'
         sofatrace.data = dds_traces[3]
