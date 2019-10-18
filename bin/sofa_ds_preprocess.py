@@ -8,7 +8,7 @@ import json
 import numpy as np
 import pandas as pd
 import subprocess
-
+import random 
 from sofa_config import *
 
 
@@ -191,14 +191,15 @@ def create_cnct_trace(cnct_list, is_sender, node_pid):
     
     name = ''
     x = cnct_trace_tmp[0]
-    y = 0
+    y = y_counter
 
     if is_sender:
         name = str(cnct_trace_tmp[7]) + ':' + str(cnct_trace_tmp[8]) + ' | checksum = ' + str(cnct_trace_tmp[11])
-        y = (y_counter * 12 + 8)*0.0001
+        #y = (y_counter * 12 + 8)*0.01
+
     else:
         name = str(cnct_trace_tmp[9]) + ':' + str(cnct_trace_tmp[10]) + ' | checksum = ' + str(cnct_trace_tmp[11])
-        y = (y_counter * 12 + 4)*0.0001
+        #y = (y_counter * 12 + 4)*0.01
 
     trace = ds_cnct_trace_init()
     trace = [name, x, y]
@@ -276,7 +277,11 @@ def ds_connect_preprocess(cfg):
     for index in range(len(all_recv_list)):
         all_recv_index_list.append([all_recv_list[index], index])
 
+
     cnct_trace = []
+    cnct_traces =[]
+    index_counter = 0
+    node_index = {}
 
     recv_cnt_skip = 0
     latency = 1
@@ -313,16 +318,38 @@ def ds_connect_preprocess(cfg):
                                 positive_max = abs_max
                                 #print(all_send_index_list[send_cnt][0])
                                 #print(all_recv_index_list[recv_cnt][0])
+                node2node = 'Node ' + str(all_send_index_list[send_cnt][0][3]) + \
+                            ' to Node ' + str(all_recv_index_list[recv_cnt][0][3])
+                
+                if node2node in node_index:
+                    cnct_trace = cnct_traces[node_index[node2node]]
 
-                cnct_trace.append(
+                    cnct_trace.append(
                                   create_cnct_trace(all_send_index_list[send_cnt][0], 1, node_pid)
-                                 )
-                cnct_trace.append(
+                                     )
+                    cnct_trace.append(
                                   create_cnct_trace(all_recv_index_list[recv_cnt][0], 0, node_pid)
-                                 )
-                cnct_trace.append(
-                ds_cnct_trace_init()
-                                 )
+                                     )
+                    cnct_trace.append(
+                    ds_cnct_trace_init()
+                                     )
+                    cnct_traces[node_index[node2node]] = cnct_trace
+                else:
+                    node_index[node2node] = index_counter
+                    index_counter += 1
+                    cnct_traces.append([])
+                    cnct_trace = cnct_traces[node_index[node2node]]
+
+                    cnct_trace.append(
+                                      create_cnct_trace(all_send_index_list[send_cnt][0], 1, node_pid)
+                                     )
+                    cnct_trace.append(
+                                      create_cnct_trace(all_recv_index_list[recv_cnt][0], 0, node_pid)
+                                     )
+                    cnct_trace.append(
+                    ds_cnct_trace_init()
+                                     )
+                    cnct_traces[node_index[node2node]] = cnct_trace
 
                 del all_send_index_list[send_cnt]
                 del all_recv_index_list[recv_cnt]
@@ -390,18 +417,25 @@ def ds_connect_preprocess(cfg):
     from sofa_preprocess import traces_to_json
     from sofa_models import SOFATrace
     # traces_to_json(traces, path, cfg, pid)
-    cnct_trace = pd.DataFrame(cnct_trace, columns = ['name','x','y'])
     traces = []
-    sofatrace = SOFATrace()
-    sofatrace.name = 'ds_connection_trace'
-    sofatrace.title = 'DS CONNECTION VIEW'
-    sofatrace.color = 'DarkSlateGray'
-    sofatrace.x_field = 'x'
-    sofatrace.y_field = 'y'
-    sofatrace.data = cnct_trace
-    traces.append(sofatrace)      
-    traces_to_json(traces, 'connect_view_data.js', cfg, '_connect')
+    
+    print(node_pid)
+    for node2node in node_index:
 
+        cnct_trace = cnct_traces[node_index[node2node]]
+        cnct_trace = pd.DataFrame(cnct_trace, columns = ['name','x','y'])
+
+        sofatrace = SOFATrace()
+        sofatrace.name = 'ds_connection_trace%d' % node_index[node2node]
+        sofatrace.title = '%s' % node2node
+        sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
+        sofatrace.x_field = 'x'
+        sofatrace.y_field = 'y'
+        sofatrace.data = cnct_trace
+        traces.append(sofatrace)
+
+      
+    traces_to_json(traces, 'connect_view_data.js', cfg, '_connect')      
     return node_pid, all_send_socket, all_recv_socket
         
 
