@@ -11,8 +11,6 @@ import subprocess
 import random 
 from sofa_config import *
 
-
-
 def ds_cnct_trace_init():	
 #field = name, x, y
     name, x, y  =  '', None, None
@@ -168,6 +166,7 @@ def ds_find_sender(recv_iter, all_send_index_list, send_find, latency, negative,
         #print(send_feature_pattern)
         if (recv_feature_pattern == send_feature_pattern):
             send_select = all_send_index_list[send_cnt][1]
+
             if not negative:
                 if (0 < recv_tmp[0] - send_tmp[0] < latency):              
                     if not send_find[send_select]:
@@ -183,50 +182,37 @@ def ds_find_sender(recv_iter, all_send_index_list, send_find, latency, negative,
         
     return total_latency, False
 
-
-def create_cnct_trace(cnct_list, is_sender, node_pid):
+### Add single point information in Highchart's line chart data format 
+def create_cnct_trace(cnct_list, is_sender, pid2node_dic):
     cnct_trace_tmp = list(cnct_list)
-
-    y_counter = node_pid[str(cnct_trace_tmp[3])]
     
     name = ''
     x = cnct_trace_tmp[0]
-    y = y_counter
+    y = pid2node_dic[str(cnct_trace_tmp[3])]
 
     if is_sender:
         name = str(cnct_trace_tmp[7]) + ':' + str(cnct_trace_tmp[8]) + ' | checksum = ' + str(cnct_trace_tmp[11])
-        #y = (y_counter * 12 + 8)*0.01
-
     else:
         name = str(cnct_trace_tmp[9]) + ':' + str(cnct_trace_tmp[10]) + ' | checksum = ' + str(cnct_trace_tmp[11])
-        #y = (y_counter * 12 + 4)*0.01
 
     trace = ds_cnct_trace_init()
     trace = [name, x, y]
 
     return trace
     
-    
-
-
 def ds_connect_preprocess(cfg):
-    #all_nodes_socket = []
-    node_pid = {} # used to find out the location of list where  
+    pid2node_dic = {} 
     all_send_socket = []
     all_recv_socket = []
     all_ds_df = pd.DataFrame([], columns=['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer',\
                                           'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time'])
     
-
-    counter = 0
+    y_position4node = 0
     logdir = cfg.logdir
+    nodes_dir = glob.glob('[0-9]*')
 
-    print(logdir)
-
-    nodes_record_dir = glob.glob('[0-9]*')
-
-    for iter_dir in nodes_record_dir:
-        node_pid[iter_dir] = counter
+    for iter_dir in nodes_dir:
+        pid2node_dic[iter_dir] = y_position4node
         send_socket = {}
         recv_socket = {}
 
@@ -252,12 +238,13 @@ def ds_connect_preprocess(cfg):
             f_sub.close()
         all_recv_socket.append(recv_socket)
 
-        counter += 1
+        y_position4node += 1
 
     all_ds_df.sort_values(by='timestamp', inplace=True)
     all_ds_list = all_ds_df.values.tolist()
 
-    filter = all_ds_df['net_layer'] == 300
+### Not really important, just nickname for sender and receiver records.
+    filter = all_ds_df['net_layer'] == 300 
     all_send_df = all_ds_df[filter]
     
     filter = all_ds_df['net_layer'] == 1410
@@ -271,17 +258,18 @@ def ds_connect_preprocess(cfg):
     all_send_index_list = []
     all_recv_index_list = []
 
+### Create list to accelerate preprocess when finding network connection which is accomplished by remove redundant calculation.
     for index in range(len(all_send_list)):
         all_send_index_list.append([all_send_list[index], index])
 
     for index in range(len(all_recv_list)):
         all_recv_index_list.append([all_recv_list[index], index])
 
-
     cnct_trace = []
     cnct_traces =[]
     index_counter = 0
     node_index = {}
+    feature_dic = {}
 
     recv_cnt_skip = 0
     latency = 1
@@ -298,12 +286,22 @@ def ds_connect_preprocess(cfg):
         for recv_cnt in range(recv_cnt_skip, len(all_recv_index_list)):
             total_latency, send_cnt = ds_find_sender(all_recv_index_list[recv_cnt], all_send_index_list, send_find, \
                                           latency, negative,total_latency)
-
+########### Account ambibuous record (need to be filter out before making connection trace)
             if send_cnt:
+                send_tmp = list(all_send_index_list[send_cnt][0])
+                send_feature_pattern = str(send_tmp[7]) + str(send_tmp[8]) + str(send_tmp[9]) + \
+                                       str(send_tmp[10]) + str(send_tmp[11])
+                
+                if send_feature_pattern not in feature_dic:
+                    feature_dic[send_feature_pattern] = 1
+                else:
+                    feature_dic[send_feature_pattern] += 1
+
+
                 send_select = all_send_index_list[send_cnt][1]
                 recv_select = all_recv_index_list[recv_cnt][1]
 
-                # find the max latency btween sender and receiver in given interval
+############### Find the max latency btween sender and receiver in the current searching range.
                 if negative and (latency == 1):
                     abs_max = abs(all_send_index_list[send_cnt][0][0] - all_recv_index_list[recv_cnt][0][0])
                     if (abs_max > negative_max): 
@@ -321,18 +319,14 @@ def ds_connect_preprocess(cfg):
                 node2node = 'Node ' + str(all_send_index_list[send_cnt][0][3]) + \
                             ' to Node ' + str(all_recv_index_list[recv_cnt][0][3])
                 
+###############    If we want create point to point connect effect in highchart's line chart, 
+############### we need to add null data in series for differentiating different connection.
                 if node2node in node_index:
                     cnct_trace = cnct_traces[node_index[node2node]]
 
-                    cnct_trace.append(
-                                  create_cnct_trace(all_send_index_list[send_cnt][0], 1, node_pid)
-                                     )
-                    cnct_trace.append(
-                                  create_cnct_trace(all_recv_index_list[recv_cnt][0], 0, node_pid)
-                                     )
-                    cnct_trace.append(
-                    ds_cnct_trace_init()
-                                     )
+                    cnct_trace.append(create_cnct_trace(all_send_index_list[send_cnt][0], 1, pid2node_dic))
+                    cnct_trace.append(create_cnct_trace(all_recv_index_list[recv_cnt][0], 0, pid2node_dic))
+                    cnct_trace.append(ds_cnct_trace_init())
                     cnct_traces[node_index[node2node]] = cnct_trace
                 else:
                     node_index[node2node] = index_counter
@@ -340,15 +334,9 @@ def ds_connect_preprocess(cfg):
                     cnct_traces.append([])
                     cnct_trace = cnct_traces[node_index[node2node]]
 
-                    cnct_trace.append(
-                                      create_cnct_trace(all_send_index_list[send_cnt][0], 1, node_pid)
-                                     )
-                    cnct_trace.append(
-                                      create_cnct_trace(all_recv_index_list[recv_cnt][0], 0, node_pid)
-                                     )
-                    cnct_trace.append(
-                    ds_cnct_trace_init()
-                                     )
+                    cnct_trace.append(create_cnct_trace(all_send_index_list[send_cnt][0], 1, pid2node_dic))
+                    cnct_trace.append(create_cnct_trace(all_recv_index_list[recv_cnt][0], 0, pid2node_dic))
+                    cnct_trace.append(ds_cnct_trace_init())
                     cnct_traces[node_index[node2node]] = cnct_trace
 
                 del all_send_index_list[send_cnt]
@@ -359,7 +347,8 @@ def ds_connect_preprocess(cfg):
                 retry = True
                 break
 
-        # scale out the searching domain
+########   Expand the searching range with larger latency if connection can not be figured out in previous given range. 
+####### Though in practice it should not exceed 1 second.
         if (not retry) and True:
             #print(len(all_send_index_list))
             #print(len(all_recv_index_list))
@@ -418,8 +407,11 @@ def ds_connect_preprocess(cfg):
     from sofa_models import SOFATrace
     # traces_to_json(traces, path, cfg, pid)
     traces = []
-    
-    print(node_pid)
+    ambiguous = 0
+    for i in feature_dic:
+        if feature_dic[i] > 1 :
+            ambiguous += feature_dic[i] 
+    print(ambiguous)
     for node2node in node_index:
 
         cnct_trace = cnct_traces[node_index[node2node]]
@@ -436,7 +428,7 @@ def ds_connect_preprocess(cfg):
 
       
     traces_to_json(traces, 'connect_view_data.js', cfg, '_connect')      
-    return node_pid, all_send_socket, all_recv_socket
+    return pid2node_dic, all_send_socket, all_recv_socket
         
 
 

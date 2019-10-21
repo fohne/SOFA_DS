@@ -9,17 +9,17 @@ Highcharts.chart('container', {
   subtitle: {
     text: 'Source: OpenSplice'
   },
-xAxis: {
+  xAxis: {
     
   },
   yAxis: {
+    // categories: ['A', 'B'],
     title: {
       text: 'Nodes'
     }
   },
   plotOptions: {
     line: {
-
       dataLabels: {
         enabled: true
       },
