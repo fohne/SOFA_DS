@@ -16,8 +16,6 @@ class highchart_annotation_label:
         self.point = {'xAxis' : 0,'yAxis' : 0,'x' :0,'y':0}
         self.text = ''
    
-
-
 def ds_cnct_trace_init():	
 ### field = name, x, y
     name, x, y  =  '', None, None
@@ -89,9 +87,56 @@ def ds_do_preprocess(cfg, logdir, pid):
     ds_trace_field = ['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer', 
                       'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time']
 
-    subprocess.call(['echo "timestamp, comm, pkt_type, tgid, tid, net_layer, payload, s_ip,\
-                      s_port, d_ip, d_port, checksum, start_time" > %sds_trace_%s'%(logdir, pid)], shell=True)
-    subprocess.call(['cat %sds_trace  | grep " %s" >> %sds_trace_%s'%(logdir, pid, logdir, pid)], shell=True)
+    
+    tmp_ds_df = pd.read_csv('%s/ds_trace'%logdir, sep=',\s+', delimiter=',', encoding="utf-8",
+                            skipinitialspace=True, header=0)
+    tmp_ds_df = tmp_ds_df.dropna()
+    ds_df = pd.DataFrame(columns=ds_trace_field)
+    for i in range(len(tmp_ds_df.columns)):
+        if i < 4:
+            series = tmp_ds_df.iloc[:,i]
+            ds_df.iloc[:,i] = series
+        else:
+            series = tmp_ds_df.iloc[:,i]
+            ds_df.iloc[:,i+1] = series
+            ds_df.iloc[:,i+1] = ds_df.iloc[:,i+1].astype('int64')
+
+    ds_df['tid']  = ds_df['tgid'].apply( lambda x: x & 0xFFFFFFFF )
+
+    ds_df['tgid'] = ds_df['tgid'].apply( lambda x: (x >> 32) & 0xFFFFFFFF )
+
+    ds_df['s_ip'] = ds_df['s_ip'].apply( lambda x: (x >> 24) & 0x000000FF | 
+                                                   (x >> 16) & 0x0000FF00 | 
+                                                   (x <<  8) & 0x00FF0000 | 
+                                                   (x << 24) & 0xFF000000  )
+
+    ds_df['d_ip'] = ds_df['d_ip'].apply( lambda x: (x >> 24) & 0x000000FF | 
+                                                   (x >> 16) & 0x0000FF00 | 
+                                                   (x <<  8) & 0x00FF0000 | 
+                                                   (x << 24) & 0xFF000000  )
+
+    ds_df['s_port'] = ds_df.apply(lambda x: (ds_df['s_port'].values >> 8) & 0x00FF | (ds_df['s_port'].values << 8) & 0xFF00)
+
+    ds_df['d_port'] = ds_df.apply(lambda x: (ds_df['d_port'].values >> 8) & 0x00FF | (ds_df['d_port'].values << 8) & 0xFF00)
+
+#    ip = ds_df['d_ip'].apply( lambda x: str((x >> 24) & 0x000000FF) + "."
+#                                      + str((x >> 16) & 0x000000FF) + "."
+#                                      + str((x >>  8) & 0x000000FF) + "."
+#                                      + str( x        & 0x000000FF) 
+#                             )
+    ds_df['d_ip'] = ds_df['d_ip'].apply( lambda x: str((x >> 24) & 0x000000FF) + "."
+                                      + str((x >> 16) & 0x000000FF) + "."
+                                      + str((x >>  8) & 0x000000FF) + "."
+                                      + str( x        & 0x000000FF) 
+                             )
+    ds_df['s_ip'] = ds_df['s_ip'].apply( lambda x: str((x >> 24) & 0x000000FF) + "."
+                                      + str((x >> 16) & 0x000000FF) + "."
+                                      + str((x >>  8) & 0x000000FF) + "."
+                                      + str( x        & 0x000000FF) 
+                             )
+
+    ds_df.to_csv('%sds_trace_%s' % (logdir, pid), mode='w', index=False) 
+
 
     ds_df = pd.read_csv('%s/ds_trace_%s'%(logdir, pid), sep=',\s+', delimiter=',', encoding="utf-8",
                             skipinitialspace=True, header=0)
@@ -117,10 +162,10 @@ def ds_do_preprocess(cfg, logdir, pid):
         ds_norm_time_lists.append(line)
 
     ds_df = pd.DataFrame(data=ds_norm_time_lists, columns=ds_trace_field)
-    ds_df['checksum'] = ds_df['checksum'].astype(int)
-    ds_df['d_port'] = ds_df['d_port'].astype(int)
+ #   ds_df['checksum'] = ds_df['checksum'].astype(int)
+#    ds_df['d_port'] = ds_df['d_port'].astype(int)
 
-### Make sure data is correct fit in pid field.
+### Exclude data which is irrelevant to profiled program
     filter = ds_df['tgid'] == int(pid)
     ds_df = ds_df[filter]
     ds_df.to_csv(logdir + 'ds_trace_%s'%pid, mode='w', index=False, float_format='%.9f')
@@ -265,9 +310,22 @@ def ds_connect_preprocess(cfg):
     for index in range(len(all_recv_list)):
         all_recv_index_list.append([all_recv_list[index], index])
 
+### Choose those data whose feature pattern is unique in the whole 
+    send_canidate = [False] * len(all_send_list)
+    feature_cnt_dic = {}
+    for send_cnt in range(len(all_send_index_list)):
+        send_tmp = all_send_index_list[send_cnt][0]
+        send_feature_pattern = str(send_tmp[7]) + str(send_tmp[8]) + str(send_tmp[9]) + \
+                               str(send_tmp[10]) + str(send_tmp[11])
+        if send_feature_pattern not in feature_cnt_dic:
+            feature_cnt_dic[send_feature_pattern] = 1
+            send_canidate[send_cnt] = True
+        else:
+            feature_cnt_dic[send_feature_pattern] += 1
+            send_canidate[send_cnt] = False
+
 ### Create connection view by add highchart line data
     # Used to avoid miss selection of same data if there exist multiple same feature pattern in the data.
-    # Though it is meanless if we only considering unique feature pattern (the number of feature pattern is 1).
     send_find = [False] * len(all_send_list)
     recv_find = [False] * len(all_recv_list)
 
@@ -283,7 +341,6 @@ def ds_connect_preprocess(cfg):
 
     # Accounting
     pre_sent_count, pre_recv_count, positive_max, negative_max, total_latency = 0, 0, 0, 0, 0
-    feature_cnt_dic = {}
 
     # Loop control paremeters
     latency, retry, negative = 1, True, False 
@@ -303,7 +360,6 @@ def ds_connect_preprocess(cfg):
                     feature_cnt_dic[send_feature_pattern] = 1
                 else:
                     feature_cnt_dic[send_feature_pattern] += 1
-
 
                 send_select = all_send_index_list[send_cnt][1]
                 recv_select = all_recv_index_list[recv_cnt][1]

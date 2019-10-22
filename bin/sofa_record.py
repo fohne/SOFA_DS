@@ -263,9 +263,8 @@ def sofa_record(command, cfg):
             os.system('sudo %s/bpf_ds.py > %sds_trace&'%(cfg.script_path,logdir))
                 #ds_prof = subprocess.Popen(['sudo', '%s/bpf_ds.py'%cfg.script_path], stdout=ds_trace) 
 
-
-            dds_process = subprocess.Popen('%s' % command)
-            pid4dname = dds_process.pid
+            #dds_process = subprocess.Popen('%s' % command)
+            #pid4dname = dds_process.pid
         
         subprocess.call('cp /proc/kallsyms %s/' % (logdir), shell=True )
         subprocess.call('chmod +w %s/kallsyms' % (logdir), shell=True )
@@ -376,14 +375,16 @@ def sofa_record(command, cfg):
                 cfg.perf_events = ""
 
                 if cfg.dds:
-                    profile_command = 'perf record -o %s/perf.data -F %s %s -p %s'\
-                    %(logdir, sample_freq, perf_options, dds_process.pid)
+                    pass
+                    #profile_command = 'perf record -o %s/perf.data -F %s %s -p %s'\
+                    #%(logdir, sample_freq, perf_options, dds_process.pid)
                     
             else:
                 profile_command = 'perf record -o %s/perf.data -e %s -F %s %s %s' % (logdir, cfg.perf_events, sample_freq, perf_options, command_prefix+command) 
                 if cfg.dds:
-                    profile_command = 'perf record -o %s/perf.data -e %s -F %s %s -p %s'\
-                                       %(logdir, cfg.perf_events, sample_freq, perf_options, dds_process.pid)
+                    pass
+                    #profile_command = 'perf record -o %s/perf.data -e %s -F %s %s -p %s'\
+                    #                   %(logdir, cfg.perf_events, sample_freq, perf_options, dds_process.pid)
         else:
             print_warning("Use /usr/bin/time to measure program performance instead of perf.")
             profile_command = '/usr/bin/time -v %s' % (command_prefix+command)
@@ -467,9 +468,20 @@ def sofa_record(command, cfg):
             p_strace.terminate()
             print_info(cfg,"tried terminating strace")
         if cfg.dds:
+            # subprocess.Popen("%s/kill_bpf.sh"%(cfg.script_path), shell=True)
             os.system('sudo pkill bpf')
-            #subprocess.Popen("%s/kill_bpf.sh"%(cfg.script_path), shell=True)
-     
+            with open(logdir + 'pid.txt', 'w') as pidfd:
+                subprocess.call(['perf', 'script', '-i%sperf.data'%logdir, '-F', 'pid'], stdout=pidfd)
+
+            pidAsNodeName = None
+            with open(logdir + 'pid.txt') as pidfd:
+                pidAsNodeName = int(pidfd.readline())
+
+            os.system('mkdir -p %sdds_finish/%d' % (cfg.logdir, pidAsNodeName))
+            os.system('mv %s* %sdds_finish/%d' % (logdir, cfg.logdir, pidAsNodeName))
+            os.system('rm -r %s' % (logdir))
+
+        os.system('rm perf.data')
     except BaseException:
         print("Unexpected error:", sys.exc_info()[0])
         if p_tcpdump != None:
@@ -516,9 +528,4 @@ def sofa_record(command, cfg):
  
         raise
     print_progress("End of Recording")
-    if cfg.dds:
-
-        os.system('mkdir -p %sdds_finish/%d' % (cfg.logdir, pid4dname))
-        os.system('mv %s* %sdds_finish/%d' % (logdir, cfg.logdir, pid4dname))
-        os.system('rm -r %s' % (logdir))
 
