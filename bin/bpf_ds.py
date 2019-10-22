@@ -1,8 +1,5 @@
 #!/usr/bin/python
 from bcc import BPF
-from bpf_ds_layer3 import bpf_layer3_txt
-from bpf_ds_layer4 import bpf_layer4_txt
-from bpf_ds_layer5 import bpf_layer5_txt
 
 # define BPF program
 prog = """
@@ -44,63 +41,158 @@ static void pid_comm_ts(struct data_t* data) {
     bpf_get_current_comm(&(data->comm), sizeof(data->comm));
 }
 
-%s // LAYER 5 CONTEXT
+////////////////////////////// LAYER 5 CONTEXT ////////////////////////////////
+int uprobe (struct pt_regs *ctx){
+    struct data_t data = {};
+    pid_comm_ts(&data);
+    data.net_layer = LAYER5|0x00;
+ events.perf_submit(ctx, &data, sizeof(data));
+    return 0;
+}
+int uretprobe (struct pt_regs *ctx){
+    struct data_t data = {};
+    data.net_layer = LAYER5|0x01;
+    pid_comm_ts(&data);
+ events.perf_submit(ctx, &data, sizeof(data));
+    return 0;
+}
 
-/*  FUNCTION                KPROBE
 
-    sock_sendmsg    :       sock_send
-    r sock_sendmsg  :       _sock_send_return
+////////////////////////////// LAYER 4 CONTEXT ////////////////////////////////
+BPF_HASH(start, struct sock *);
+BPF_HASH(end, u64 , struct data_t);
 
-    udp_sendmsg     :       udp_send_msg
+int _sock_send(struct pt_regs *ctx)
+{
+    struct socket *sock;
+    u64 ts;
 
-    sock_recvmsg    :       sock_recv
-    r sock_recvmsg  :       _sock_recv_return
- 
-*/
-%s // LAYER 4 CONTEXT
- 
-%s // LAYER 3 CONTEXT
-""" % (bpf_layer5_txt, bpf_layer4_txt, bpf_layer3_txt)
+    sock = (struct socket *)PT_REGS_PARM1(ctx); 
+    struct sock *sk = sock->sk;
+
+    ts = bpf_ktime_get_ns();
+    start.update(&sk, &ts);
+    return 0;
+}
+
+int _sock_recv_return(struct pt_regs *ctx)
+{
+    struct data_t data = {};
+    struct data_t 	*tmp_data;
+
+    int len;
+    u64 pid;
+
+    len = PT_REGS_RC(ctx);
+    if (len < 0) {
+        return 0;
+    }
+    pid = bpf_get_current_pid_tgid();
+
+    tmp_data = end.lookup(&pid);
+    if (tmp_data) {
+        data = *tmp_data;
+    }
+
+    data.ts = bpf_ktime_get_ns();
+    data.net_layer = RETURN_FUN | LAYER4 | 0x10;
+    if (data.s_port || data.d_port || data.s_ip || data.d_ip) {
+        events.perf_submit(ctx, &data, sizeof(data));
+    }
+    return 0;
+}
+
+int skb_recv_udp(struct pt_regs *ctx)
+{
+    struct data_t data = {};
+
+    struct sk_buff *skb;
+    struct udphdr * uh;
+    struct iphdr * iph;
+    u8 pkt_type;
+    skb = (struct sk_buff *)PT_REGS_RC(ctx);
+
+    pkt_type = *(skb->__pkt_type_offset);
+    pkt_type = 0x07 & pkt_type;
+    data.type = pkt_type;
+
+    uh = (struct udphdr *) (skb->head + skb->transport_header);
+    iph = (struct iphdr *) (skb->head + skb->network_header);
+
+    data.csum = uh->check;
+    data.len = skb->len;
+    data.d_port = uh->dest;
+    data.s_port = uh->source;
+    data.d_ip = iph->daddr;
+    data.s_ip = iph->saddr;
+
+    pid_comm_ts(&data);
+    end.update(&data.pid, &data);
+
+    // data.net_layer = RETURN_FUN | LAYER4 | 0x11;
+    // events.perf_submit(ctx, &data, sizeof(data));
+    return 0;
+}
+
+
+////////////////////////////// LAYER 3 CONTEXT ////////////////////////////////
+int ip_send_skb (struct pt_regs *ctx)
+{
+    struct sk_buff *skb;
+    struct udphdr * uh;
+    struct iphdr * iph;
+    struct data_t data = {};
+    u8 pkt_type;
+    u64 *l4_ts;
+
+    pid_comm_ts(&data);
+    skb = (struct sk_buff *)PT_REGS_PARM2(ctx);
+
+    pkt_type = *(skb->__pkt_type_offset);
+    pkt_type = 0x07 & pkt_type;
+    data.type = pkt_type;
+
+    uh = (struct udphdr *) (skb->head + skb->transport_header);
+    iph = (struct iphdr *) (skb->head + skb->network_header);
+
+    struct sock *sk;
+    sk = skb->sk;
+    l4_ts = start.lookup(&sk);
+    if (l4_ts) {
+        data.send_start_ts = *l4_ts;
+    }
+    start.delete(&sk);
+
+    data.csum = uh->check;
+    data.len = (skb->len);
+    data.d_port = uh->dest;
+    data.s_port = uh->source;
+    data.d_ip = iph->daddr;
+    data.s_ip = iph->saddr;
+
+    data.net_layer = LAYER3 | 0x00;
+    events.perf_submit(ctx, &data, sizeof(data));
+
+    return 0;
+}
+"""
 
 # load BPF program
 b = BPF(text=prog)
 
 b.attach_kprobe( event="sock_sendmsg", fn_name="_sock_send")
-
-
-#b.attach_kprobe( event="udp_sendmsg", fn_name="udp_send_msg")
 b.attach_kprobe( event="ip_send_skb", fn_name="ip_send_skb")
-#b.attach_kretprobe( event="sock_sendmsg", fn_name="_sock_send_return")
 
 b.attach_kretprobe( event="__skb_recv_udp", fn_name="skb_recv_udp") 
-#b.attach_kprobe(event="sock_recvmsg", fn_name="sock_recv")
 b.attach_kretprobe(event="sock_recvmsg", fn_name="_sock_recv_return")
 
 #b.attach_uprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uprobe")
 #b.attach_uretprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uretprobe")
 
 
-#b.attach_kprobe(event="net_rx_action", fn_name="rx_action")
-#b.attach_kretprobe(event="net_rx_action", fn_name="return_rx_action")
-
-
-
-print("""       
-#    FUNCTION NAME
-1    net_rx_action
-2    netif_receive_skb
-3    ip_rcv
-4    udp_rcv
-5    sock_def_readable
-
-""")
-
 # HEADER
 print("%18s, %16s, %8s, %8s, %10s, %10s, %8s, %16s, %10s, %16s, %6s, %10s,   %10s" % 
      ("TIME(ns)", "COMM", "TYPE", "TGID", "TID", "NET LAYER", "PAYLOAD", "HOST_IP", "HOST_PORT", "IP", "PORT", "CHECKSUM", "START TIME(ns)"))
-
-# process event
-start = 0
 
 def print_event(cpu, data, size):
 
@@ -122,19 +214,13 @@ def print_event(cpu, data, size):
           str((event.s_ip >> 24) & 0x000000FF)
 
     s_port = ((event.s_port >> 8) & 0x00FF) | ((event.s_port << 8) & 0xFF00)
-        
 
-    #if ((str(s_port)[0:2] =='74') or (str(d_port)[0:2] =='74')):
     print("%18d, %16s, %8d, %8d,   %8d, %10x, %8d, %16s, %10s, %16s, %6s, %10d,   %10d" % 
          (event.ts, event.comm, event.type, pid, tid, event.net_layer, event.len, s_ip, s_port, d_ip, d_port, event.csum, event.send_start_ts))
 
-
-
-# loop with callback to print_event
 b["events"].open_perf_buffer(print_event, page_cnt = 64*64)
 while 1:
     b.perf_buffer_poll()
-
 
 ################################################################################
 
@@ -149,29 +235,10 @@ while 1:
 #/* Unused, PACKET_FASTROUTE and PACKET_LOOPBACK are invisible to user space */
 #define PACKET_FASTROUTE	6		/* Fastrouted frame	*/
 
-
 ipv4_is_multicast = """
 static inline bool ipv4_is_multicast(__be32 addr)
 {
-	return (addr & htonl(0xf0000000)) == htonl(0xe0000000);
+    return (addr & htonl(0xf0000000)) == htonl(0xe0000000);
 }
 """
 
-
-
-#b.attach_kprobe(event="__netif_receive_skb_one_core", fn_name="netif_receive")
-
-#b.attach_kprobe(event="ip_rcv", fn_name="ip_r")
-#b.attach_kprobe(event="udp_rcv", fn_name="udp_r")
-#b.attach_kprobe(event="sock_def_readable", fn_name="data_ready")
-
-#b.attach_kprobe(event="__sys_recvfrom", fn_name="recv_from")
-#b.attach_kprobe( event="__sys_sendto", fn_name="send_to")
-#b.attach_kretprobe(event="__sys_recvfrom", fn_name="sock_recv")
-#b.attach_kretprobe( event="__sys_sendto", fn_name="sock_send")
-
-
-#b.attach_kretprobe(event="__netif_receive_skb_one_core", fn_name="return_netif_receive")
-#b.attach_kretprobe(event="ip_rcv", fn_name="return_ip_r")
-#b.attach_kretprobe(event="udp_rcv", fn_name="return_udp_r")
-#b.attach_kprobe(event="sock_def_readable", fn_name="return_data_ready")

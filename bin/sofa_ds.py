@@ -51,6 +51,6 @@ def ds_preprocess(cfg):
         cfg.logdir = './' + str(nodes_record_dir[i]) + '/'
         sofa_preprocess(cfg)
         cfg.logdir = save_logdir
-    # return node_pid, all_send_socket, all_recv_socket
-    node_pid, all_send_socket, all_recv_socket = ds_connect_preprocess(cfg)
+
+    pid2y_pos_dic = ds_connect_preprocess(cfg)
 
