@@ -369,7 +369,7 @@ def traces_to_json(traces, path, cfg, pid):
                         'y': trace.y_field},
                     inplace=True)
             f.write("\n\n")
-        if cfg.dds:
+        if cfg.ds:
             f.write("sofa_traces%s = [ "%pid)
         else:
             f.write("sofa_traces = [ ")
@@ -466,7 +466,7 @@ def sofa_preprocess(cfg):
     gpu_glb_memcpy_h2d_traces = []
     gpu_glb_memcpy_d2h_traces = []
     gpu_glb_memcpy_d2d_traces = []
-    dds_traces = []
+    ds_traces = []
 
     gpulog_mode = 'w'
     gpulog_header = 'True'
@@ -535,21 +535,12 @@ def sofa_preprocess(cfg):
 #==============================================================================
 
 
-    if cfg.dds:
-        # dds global variables declaration for later raw data processing
-        pid = 0
-        
-
-        # phase 1: extract pid(tgid) from perf data
-        with open('%s/perf.script'%logdir) as perf_fd:
-            line = perf_fd.readline()
-            line = line.split()
-            pid = line[0]
-            pid = pid.split('/')
-            pid = pid[0]
+    if cfg.ds:
+        # ds global variables declaration for later raw data processing
+        with open(logdir + 'pid.txt') as pidfd:
             global ds_pid
-            ds_pid = pid
-            dds_traces = ds_do_preprocess(cfg, logdir, pid)
+            ds_pid = int(pidfd.readline())
+            ds_traces = ds_do_preprocess(cfg, logdir, pid)
 
 #==============================================================================
     with open('%s/diskstat.txt' % logdir) as f:
@@ -2098,41 +2089,41 @@ def sofa_preprocess(cfg):
     sofatrace.data = nvsmi_sm_traces
     traces.append(sofatrace)
     
-    if cfg.dds:
+    if cfg.ds:
         sofatrace = SOFATrace()
-        sofatrace.name = 'dds_pub'
-        sofatrace.title = 'dds_pub_trace'
+        sofatrace.name = 'ds_sender'
+        sofatrace.title = 'ds_sender_trace'
         sofatrace.color = 'rgba(0, 120, 255, 0.8)'
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'deviceId'
-        sofatrace.data = dds_traces[0]
+        sofatrace.data = ds_traces[0]
         traces.append(sofatrace)
 
         sofatrace = SOFATrace()
-        sofatrace.name = 'dds_sub'
-        sofatrace.title = 'dds_sub_trace'
+        sofatrace.name = 'ds_receiver'
+        sofatrace.title = 'ds_receiver_trace'
         sofatrace.color = 'rgba(255, 33, 44, 0.8)'
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'deviceId'
-        sofatrace.data = dds_traces[1]
+        sofatrace.data = ds_traces[1]
         traces.append(sofatrace)
 
         sofatrace = SOFATrace()
-        sofatrace.name = 'dds_tx_band'
-        sofatrace.title = 'dds_pub_band'
+        sofatrace.name = 'ds_tx_band'
+        sofatrace.title = 'ds_sender_band'
         sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'bandwidth'
-        sofatrace.data = dds_traces[2]
+        sofatrace.data = ds_traces[2]
         traces.append(sofatrace)
 
         sofatrace = SOFATrace()
-        sofatrace.name = 'dds_rx_band'
-        sofatrace.title = 'dds_sub_band'
+        sofatrace.name = 'ds_rx_band'
+        sofatrace.title = 'ds_receiver_band'
         sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'bandwidth'
-        sofatrace.data = dds_traces[3]
+        sofatrace.data = ds_traces[3]
         traces.append(sofatrace)
 
     if cfg.enable_encode_decode:

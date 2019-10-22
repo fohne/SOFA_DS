@@ -24,8 +24,8 @@ class DSTrace:
 
 def ds_preprocess(cfg):
     save_logdir = cfg.logdir
-    dds_logpath = cfg.logdir + "dds_finish/"
-    os.chdir(dds_logpath)
+    ds_logpath = cfg.logdir + "ds_finish/"
+    os.chdir(ds_logpath)
     nodes_record_dir = glob.glob('[0-9]*')
     
     min_time = 0

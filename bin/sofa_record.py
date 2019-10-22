@@ -163,8 +163,8 @@ def sofa_record(command, cfg):
     p_pcm_memory = None
     p_pcm_numa = None 
     logdir = cfg.logdir
-    if cfg.dds:
-        logdir = cfg.logdir + "dds/"
+    if cfg.ds:
+        logdir = cfg.logdir + "ds/"
     p_strace = None
     p_pystack = None
     print_info(cfg,'SOFA_COMMAND: %s' % command)
@@ -256,16 +256,10 @@ def sofa_record(command, cfg):
         else:
             perf_options = ''
 
-        if cfg.dds:
-            #with open('%sds_trace'%logdir,'w') as ds_trace:
+        if cfg.ds:
             ds_prof = subprocess.call(['sudo', 'sleep', '1'])
-            #ds_prof = subprocess.call(['sudo', '%s/bpf_ds.py'%cfg.script_path,'>','%sds_trace&'%logdir])
             os.system('sudo %s/bpf_ds.py > %sds_trace&'%(cfg.script_path,logdir))
-                #ds_prof = subprocess.Popen(['sudo', '%s/bpf_ds.py'%cfg.script_path], stdout=ds_trace) 
 
-            #dds_process = subprocess.Popen('%s' % command)
-            #pid4dname = dds_process.pid
-        
         subprocess.call('cp /proc/kallsyms %s/' % (logdir), shell=True )
         subprocess.call('chmod +w %s/kallsyms' % (logdir), shell=True )
 
@@ -361,30 +355,19 @@ def sofa_record(command, cfg):
         if cfg.enable_strace:
             command_prefix = ' '.join(['strace', '-q', '-T', '-t', '-tt', '-f', '-o', '%s/strace.txt'%logdir]) + ' '
 
-        if cfg.dds:
-            # recording
+        if cfg.ds:
             bpf_timebase =  open(logdir + '/bpf_timebase.txt', 'w')
             subprocess.call('%s/real_mono_differ' % (cfg.script_path), shell=True, stderr=bpf_timebase, stdout=bpf_timebase)
-
-            
 
         if int(os.system('command -v perf 1> /dev/null')) == 0:
             ret = str(subprocess.check_output(['perf stat -e cycles ls 2>&1 '], shell=True))
             if ret.find('not supported') >=0:
                 profile_command = 'perf record -o %s/perf.data -F %s %s %s' % (logdir, sample_freq, perf_options, command_prefix+command)
                 cfg.perf_events = ""
-
-                if cfg.dds:
-                    pass
-                    #profile_command = 'perf record -o %s/perf.data -F %s %s -p %s'\
-                    #%(logdir, sample_freq, perf_options, dds_process.pid)
                     
             else:
                 profile_command = 'perf record -o %s/perf.data -e %s -F %s %s %s' % (logdir, cfg.perf_events, sample_freq, perf_options, command_prefix+command) 
-                if cfg.dds:
-                    pass
-                    #profile_command = 'perf record -o %s/perf.data -e %s -F %s %s -p %s'\
-                    #                   %(logdir, cfg.perf_events, sample_freq, perf_options, dds_process.pid)
+
         else:
             print_warning("Use /usr/bin/time to measure program performance instead of perf.")
             profile_command = '/usr/bin/time -v %s' % (command_prefix+command)
@@ -467,8 +450,7 @@ def sofa_record(command, cfg):
         if p_strace != None:
             p_strace.terminate()
             print_info(cfg,"tried terminating strace")
-        if cfg.dds:
-            # subprocess.Popen("%s/kill_bpf.sh"%(cfg.script_path), shell=True)
+        if cfg.ds:
             os.system('sudo pkill bpf')
             with open(logdir + 'pid.txt', 'w') as pidfd:
                 subprocess.call(['perf', 'script', '-i%sperf.data'%logdir, '-F', 'pid'], stdout=pidfd)
@@ -477,8 +459,8 @@ def sofa_record(command, cfg):
             with open(logdir + 'pid.txt') as pidfd:
                 pidAsNodeName = int(pidfd.readline())
 
-            os.system('mkdir -p %sdds_finish/%d' % (cfg.logdir, pidAsNodeName))
-            os.system('mv %s* %sdds_finish/%d' % (logdir, cfg.logdir, pidAsNodeName))
+            os.system('mkdir -p %sds_finish/%d' % (cfg.logdir, pidAsNodeName))
+            os.system('mv %s* %sds_finish/%d' % (logdir, cfg.logdir, pidAsNodeName))
             os.system('rm -r %s' % (logdir))
 
         os.system('rm perf.data')

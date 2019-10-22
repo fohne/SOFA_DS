@@ -30,7 +30,6 @@ def formatted_lines_to_trace(data_in, index_tab, name_info="empty"):
     from sofa_preprocess import trace_init
     result = []
 
-
     for line in data_in:
         trace = trace_init()
 ####### Create name information
@@ -86,7 +85,6 @@ def ds_do_preprocess(cfg, logdir, pid):
     
     ds_trace_field = ['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer', 
                       'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time']
-
     
     tmp_ds_df = pd.read_csv('%s/ds_trace'%logdir, sep=',\s+', delimiter=',', encoding="utf-8",
                             skipinitialspace=True, header=0)
@@ -105,78 +103,45 @@ def ds_do_preprocess(cfg, logdir, pid):
 
     ds_df['tgid'] = ds_df['tgid'].apply( lambda x: (x >> 32) & 0xFFFFFFFF )
 
-    ds_df['s_ip'] = ds_df['s_ip'].apply( lambda x: (x >> 24) & 0x000000FF | 
-                                                   (x >> 16) & 0x0000FF00 | 
-                                                   (x <<  8) & 0x00FF0000 | 
-                                                   (x << 24) & 0xFF000000  )
-
-    ds_df['d_ip'] = ds_df['d_ip'].apply( lambda x: (x >> 24) & 0x000000FF | 
-                                                   (x >> 16) & 0x0000FF00 | 
-                                                   (x <<  8) & 0x00FF0000 | 
-                                                   (x << 24) & 0xFF000000  )
+    ds_df['s_ip'] = ds_df['s_ip'].apply( lambda x: str( x        & 0x000000FF) + "."
+                                                 + str((x >>  8) & 0x000000FF) + "."
+                                                 + str((x >> 16) & 0x000000FF) + "."
+                                                 + str((x >> 24) & 0x000000FF) 
+                                       )
+    ds_df['d_ip'] = ds_df['d_ip'].apply( lambda x: str( x        & 0x000000FF) + "."
+                                                 + str((x >>  8) & 0x000000FF) + "."
+                                                 + str((x >> 16) & 0x000000FF) + "."
+                                                 + str((x >> 24) & 0x000000FF) 
+                                       )
 
     ds_df['s_port'] = ds_df.apply(lambda x: (ds_df['s_port'].values >> 8) & 0x00FF | (ds_df['s_port'].values << 8) & 0xFF00)
 
     ds_df['d_port'] = ds_df.apply(lambda x: (ds_df['d_port'].values >> 8) & 0x00FF | (ds_df['d_port'].values << 8) & 0xFF00)
 
-#    ip = ds_df['d_ip'].apply( lambda x: str((x >> 24) & 0x000000FF) + "."
-#                                      + str((x >> 16) & 0x000000FF) + "."
-#                                      + str((x >>  8) & 0x000000FF) + "."
-#                                      + str( x        & 0x000000FF) 
-#                             )
-    ds_df['d_ip'] = ds_df['d_ip'].apply( lambda x: str((x >> 24) & 0x000000FF) + "."
-                                      + str((x >> 16) & 0x000000FF) + "."
-                                      + str((x >>  8) & 0x000000FF) + "."
-                                      + str( x        & 0x000000FF) 
-                             )
-    ds_df['s_ip'] = ds_df['s_ip'].apply( lambda x: str((x >> 24) & 0x000000FF) + "."
-                                      + str((x >> 16) & 0x000000FF) + "."
-                                      + str((x >>  8) & 0x000000FF) + "."
-                                      + str( x        & 0x000000FF) 
-                             )
-
-    ds_df.to_csv('%sds_trace_%s' % (logdir, pid), mode='w', index=False) 
-
-
-    ds_df = pd.read_csv('%s/ds_trace_%s'%(logdir, pid), sep=',\s+', delimiter=',', encoding="utf-8",
-                            skipinitialspace=True, header=0)
-    ds_df.sort_values('timestamp')
-    ds_df = ds_df.dropna(axis=0, how='any')
-
 ### Normalize traces time
+    ds_df.sort_values('timestamp')
     bpf_timebase_uptime = 0 
     bpf_timebase_unix = 0 
     with open(logdir + 'bpf_timebase.txt') as f:
         lines = f.readlines()
         bpf_timebase_unix = float(lines[-1].split(',')[0])
         bpf_timebase_uptime = float(lines[-1].split(',')[1].rstrip())
-            
     offset = bpf_timebase_unix - bpf_timebase_uptime
-
-    ds_norm_time_lists = []
-    ds_raw_lines = ds_df.values.tolist()
-    for line in ds_raw_lines:
-        if len(line) != len(ds_trace_field):
-            continue
-        line[0] = (int(line[0])  / 10**9) + offset - cfg.time_base
-        ds_norm_time_lists.append(line)
-
-    ds_df = pd.DataFrame(data=ds_norm_time_lists, columns=ds_trace_field)
- #   ds_df['checksum'] = ds_df['checksum'].astype(int)
-#    ds_df['d_port'] = ds_df['d_port'].astype(int)
+    ds_df['timestamp'] = ds_df['timestamp'].apply(lambda x: (x / 10**9) + offset - cfg.time_base )
 
 ### Exclude data which is irrelevant to profiled program
     filter = ds_df['tgid'] == int(pid)
     ds_df = ds_df[filter]
-    ds_df.to_csv(logdir + 'ds_trace_%s'%pid, mode='w', index=False, float_format='%.9f')
 
     filter = ds_df['net_layer'] == 300
     ds_tx_df = ds_df[filter]
-    ds_tx_df.to_csv(logdir + 'ds_trace_pub_%s'%pid, mode='w', index=False, float_format='%.9f')
 
     filter = ds_df['net_layer'] == 1410
     ds_rx_df = ds_df[filter]
-    ds_rx_df.to_csv(logdir + 'ds_trace_sub_%s'%pid, mode='w', index=False, float_format='%.9f') 
+
+    ds_df.to_csv(logdir + 'ds_trace_%s'%pid, mode='w', index=False, float_format='%.9f')
+    ds_tx_df.to_csv(logdir + 'ds_trace_pub_%s'%pid, mode='w', index=False, float_format='%.9f')
+    ds_rx_df.to_csv(logdir + 'ds_trace_sub_%s'%pid, mode='w', index=False, float_format='%.9f')
 
     ds_norm_time_lists = [ds_tx_df.values.tolist(), ds_rx_df.values.tolist()]
 
@@ -207,10 +172,10 @@ def ds_do_preprocess(cfg, logdir, pid):
 
 ### Convert to csv format which SOFA used to be stored as SOFA trace class  
     return [
-            list_to_csv_and_traces(logdir, SOFA_trace_lists[0], 'dds_trace_tx%s.csv'%pid, 'w'),
-            list_to_csv_and_traces(logdir, SOFA_trace_lists[1], 'dds_trace_rx%s.csv'%pid, 'w'),
-            list_to_csv_and_traces(logdir, SOFA_trace_lists[2], 'dds_trace_tx_bandwidth%s.csv'%pid, 'w'),
-            list_to_csv_and_traces(logdir, SOFA_trace_lists[3], 'dds_trace_rx_bandwidth%s.csv'%pid, 'w')
+            list_to_csv_and_traces(logdir, SOFA_trace_lists[0], 'ds_trace_tx%s.csv'%pid, 'w'),
+            list_to_csv_and_traces(logdir, SOFA_trace_lists[1], 'ds_trace_rx%s.csv'%pid, 'w'),
+            list_to_csv_and_traces(logdir, SOFA_trace_lists[2], 'ds_trace_tx_bandwidth%s.csv'%pid, 'w'),
+            list_to_csv_and_traces(logdir, SOFA_trace_lists[3], 'ds_trace_rx_bandwidth%s.csv'%pid, 'w')
            ]
 
 def ds_find_sender(recv_iter, all_send_index_list, send_find, latency, negative,total_latency):

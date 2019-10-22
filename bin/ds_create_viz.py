@@ -1,5 +1,5 @@
 import os
-def ds_create_viz(dds_logpath, nodes_record_dir):
+def ds_create_viz(ds_logpath, nodes_record_dir):
     sofa_home = os.path.dirname(os.path.realpath(__file__))
     #os.system('cp %s/../sofaboard/ds_index_template ./' % sofa_home)
     #os.system('cp %s/../sofaboard/timeline.js ./' % sofa_home)
@@ -19,7 +19,7 @@ def ds_create_viz(dds_logpath, nodes_record_dir):
     replace_string = ''
     for i in range(len(nodes_record_dir)):
 
-        f = open ('%s/node_to_ip.txt'%nodes_record_dir[i])
+        f = open ('%s/pid2ip.txt'%nodes_record_dir[i])
         node_ip = f.read()
         node_ip = node_ip.split()
         node_ip = node_ip[1]

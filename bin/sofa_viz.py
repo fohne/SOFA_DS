@@ -10,14 +10,14 @@ from ds_create_viz import ds_create_viz
 
 def sofa_viz(cfg):
     sofa_home = os.path.dirname(os.path.realpath(__file__))
-    if cfg.dds:
-        dds_logpath = cfg.logdir + "dds_finish/"
-        os.chdir(dds_logpath)
+    if cfg.ds:
+        ds_logpath = cfg.logdir + "ds_finish/"
+        os.chdir(ds_logpath)
         nodes_record_dir = glob.glob('[0-9]*')
-        ds_create_viz(dds_logpath, nodes_record_dir)
+        ds_create_viz(ds_logpath, nodes_record_dir)
        
         for i in range(len(nodes_record_dir)):
-            dds_logdir = './' + str(nodes_record_dir[i]) + '/'
+            ds_logdir = './' + str(nodes_record_dir[i]) + '/'
 
 
 
@@ -36,8 +36,8 @@ def sofa_viz(cfg):
     print_hint('Please open your browser to start profiling.')
     print_hint('After profiling, please enter Ctrl+C to exit.')
 
-    if cfg.dds:
-        print(dds_logpath)
+    if cfg.ds:
+        print(ds_logpath)
         os.system('pwd')
         os.system(
         ' python3 -m http.server %d 2>&1 1> /dev/null;' %
