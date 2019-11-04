@@ -540,7 +540,7 @@ def sofa_preprocess(cfg):
         with open(logdir + 'pid.txt') as pidfd:
             global ds_pid
             ds_pid = int(pidfd.readline())
-            ds_traces = ds_do_preprocess(cfg, logdir, pid)
+            ds_traces = ds_do_preprocess(cfg, logdir, ds_pid)
 
 #==============================================================================
     with open('%s/diskstat.txt' % logdir) as f:

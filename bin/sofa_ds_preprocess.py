@@ -85,9 +85,9 @@ def ds_do_preprocess(cfg, logdir, pid):
     
     ds_trace_field = ['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer', 
                       'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time']
-    
+
     tmp_ds_df = pd.read_csv('%s/ds_trace'%logdir, sep=',\s+', delimiter=',', encoding="utf-8",
-                            skipinitialspace=True, header=0)
+                            skipinitialspace=False, header=0)
     tmp_ds_df = tmp_ds_df.dropna()
     ds_df = pd.DataFrame(columns=ds_trace_field)
     for i in range(len(tmp_ds_df.columns)):
@@ -226,11 +226,11 @@ def create_cnct_trace(cnct_list, is_sender, pid_yPos_dic):
     
 def ds_connect_preprocess(cfg):
     logdir = cfg.logdir
-
+    ds_trace_field = ['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer', 
+                      'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time']
     all_send_socket = []
     all_recv_socket = []
-    all_ds_df = pd.DataFrame([], columns=['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer',\
-                                          'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time'])
+    all_ds_df = pd.DataFrame([], columns=ds_trace_field)
     #a = highchart_annotation_label()
     #c = json.dumps(a.__dict__)
     pid_yPos_dic = {} 
@@ -253,16 +253,21 @@ def ds_connect_preprocess(cfg):
         all_ds_df = pd.concat([ds_df, all_ds_df], ignore_index=True, sort=False)
 
         yPos_cnt += 1
-
+    y = [0,0,0,0,0,0,0,0,0,0,0,0,0]
     all_ds_df.sort_values(by='timestamp', inplace=True)
-
+    ds_df_no_multicast = pd.DataFrame([], columns=ds_trace_field)
+    ds_df_no_multicast = all_ds_df.apply( lambda x: x if (int(x['d_ip'].split('.')[0]) & 0xf0 != 0xe0) else None
+                                         , result_type='broadcast', axis=1)
+    ds_df_no_multicast = ds_df_no_multicast.dropna()
+    
 ### Not really important, just nickname for sender and receiver records.
-    filter = all_ds_df['net_layer'] == 300 
-    all_send_df = all_ds_df[filter]
+    print(ds_df_no_multicast)
+    filter = ds_df_no_multicast['net_layer'] == 300 
+    all_send_df = ds_df_no_multicast[filter]
     all_send_list = all_send_df.values.tolist()
 
-    filter = all_ds_df['net_layer'] == 1410
-    all_recv_df = all_ds_df[filter]
+    filter = ds_df_no_multicast['net_layer'] == 1410
+    all_recv_df = ds_df_no_multicast[filter]
     all_recv_list = all_recv_df.values.tolist()
 
 ### Create list to accelerate preprocess when finding network connection which is accomplished by remove redundant calculation.
