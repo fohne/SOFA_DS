@@ -19,8 +19,8 @@ int main()
     //printf("Real,Mono,Process,Thread\n");
     printf("Real, Mono\n");
     for(int i = 0; i < 100; i++){
-    clock_gettime(CLOCK_REALTIME, &ts);
-    printf("%ld.%ld, ",ts.tv_sec, ts.tv_nsec);
+//    clock_gettime(CLOCK_REALTIME, &ts);
+//    printf("%ld.%ld, ",ts.tv_sec, ts.tv_nsec);
     clock_gettime(CLOCK_MONOTONIC, &ts);
     printf("%ld.%ld\n",ts.tv_sec, ts.tv_nsec);}
 /*
