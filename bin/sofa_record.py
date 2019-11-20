@@ -259,7 +259,9 @@ def sofa_record(command, cfg):
         if cfg.ds:
             ds_prof = subprocess.call(['sudo', 'sleep', '1'])
             os.system('sudo %s/bpf_ds.py > %sds_trace&'%(cfg.script_path,logdir))
-
+        cmd = open('%scommand.txt' % logdir,'w') 
+        cmd.write(command)
+        cmd.close()
         subprocess.call('cp /proc/kallsyms %s/' % (logdir), shell=True )
         subprocess.call('chmod +w %s/kallsyms' % (logdir), shell=True )
 

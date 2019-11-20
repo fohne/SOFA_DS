@@ -121,8 +121,12 @@ def ds_do_preprocess(cfg, logdir, pid):
 
 ### Normalize traces time
     ds_df.sort_values('timestamp')
+    #remove_noise = ds_df.values.tolist()
+    #for i in len(remove_noise):
+     #   remove_noise[i]
     bpf_timebase_uptime = 0 
     bpf_timebase_unix = 0 
+    
     with open(logdir + 'bpf_timebase.txt') as f:
         lines = f.readlines()
         bpf_timebase_unix = float(lines[-1].split(',')[0])
@@ -133,7 +137,7 @@ def ds_do_preprocess(cfg, logdir, pid):
 ### Exclude data which is irrelevant to profiled program
     filter = ds_df['tgid'] == int(pid)
     ds_df = ds_df[filter]
-
+    
     filter = ds_df['net_layer'] == 300
     ds_tx_df = ds_df[filter]
 
@@ -179,7 +183,7 @@ def ds_do_preprocess(cfg, logdir, pid):
             list_to_csv_and_traces(logdir, SOFA_trace_lists[3], 'ds_trace_rx_bandwidth%s.csv'%pid, 'w')
            ]
 
-def ds_find_sender(recv_iter, all_send_index_list, send_find,send_canidate, latency, negative,total_latency):
+def ds_find_sender(recv_iter, all_send_index_list, send_find, send_canidate, latency, negative,total_latency):
 
     recv_tmp = recv_iter[0]
     recv_feature_pattern = str(recv_tmp[7]) + str(recv_tmp[8]) + str(recv_tmp[9]) + str(recv_tmp[10]) + str(recv_tmp[11])
@@ -240,20 +244,26 @@ def ds_connect_preprocess(cfg):
     
     adjust_list = []
     en_adjust = 1
+    second_1 = 1
     adjust_file_exist = 0
     if (os.path.exists('adjust_offset.txt')):
         adjust_file_exist = 1
         f = open('adjust_offset.txt')
         adjust_list = f.readline().split(',')
+        second_1 = float(adjust_list[2])
 
 ### Read in all nodes network activities information
     nodes_dir = glob.glob('[0-9]*')
+    command_dic = {}
     for nd_dir_iter in nodes_dir:
 
         f = open ('%s/pid2ip.txt'%nd_dir_iter)
         pid2ip = f.readline().split()
         f.close()
-
+        f = open ('%s/command.txt'%nd_dir_iter)
+        command = f.readline().split()
+        f.close()
+        command_dic[command[0]] = 1
         pid_ip_dic[pid2ip[0]] = pid2ip[1]
         pid_yPos_dic[nd_dir_iter] = yPos_cnt
 
@@ -262,14 +272,35 @@ def ds_connect_preprocess(cfg):
 
             
         if en_adjust and adjust_file_exist and (nd_dir_iter == adjust_list[0]):
-            ds_df['timestamp'] = ds_df['timestamp'].apply( lambda x: x - float(adjust_list[3]) )
+            ds_df['timestamp'] = ds_df['timestamp'].apply( lambda x: x - float(adjust_list[1]) )
 
 
         all_ds_df = pd.concat([ds_df, all_ds_df], ignore_index=True, sort=False)
 
         yPos_cnt += 1
-    y = [0,0,0,0,0,0,0,0,0,0,0,0,0]
+
     all_ds_df.sort_values(by='timestamp', inplace=True)
+    print(len(all_ds_df))
+    de_noise = all_ds_df.values.tolist()
+    max_cnt = 0
+    for command in command_dic:
+
+        cnt = False
+        print(len(de_noise))
+        for i in range(len(de_noise)):
+            if de_noise[i][1].find(command) !=-1:
+                cnt = i
+
+                break
+        if cnt and cnt > max_cnt:
+            max_cnt = cnt
+
+    de_noise = de_noise[max_cnt:]
+    all_ds_df = pd.DataFrame(de_noise, columns=ds_trace_field)
+    print(len(all_ds_df))
+
+    y = [0,0,0,0,0,0,0,0,0,0,0,0,0]
+
     ds_df_no_multicast = pd.DataFrame([], columns=ds_trace_field)
     ds_df_no_multicast = all_ds_df.apply( lambda x: x if (int(x['d_ip'].split('.')[0]) & 0xf0 != 0xe0) else None
                                          , result_type='broadcast', axis=1)
@@ -298,18 +329,33 @@ def ds_connect_preprocess(cfg):
 
 ### Choose those data whose feature pattern is unique in the whole 
     send_canidate = [False] * len(all_send_list)
-    feature_cnt_dic = {}
+    feature_send_dic = {}
     for send_cnt in range(len(all_send_index_list)):
         send_tmp = all_send_index_list[send_cnt][0]
         send_feature_pattern = str(send_tmp[7]) + str(send_tmp[8]) + str(send_tmp[9]) + \
                                str(send_tmp[10]) + str(send_tmp[11])
-        if send_feature_pattern not in feature_cnt_dic:
-            feature_cnt_dic[send_feature_pattern] = 1
+        if send_feature_pattern not in feature_send_dic:
+            feature_send_dic[send_feature_pattern] = [1, send_cnt]
             send_canidate[send_cnt] = True
         else:
-            feature_cnt_dic[send_feature_pattern] += 1
+            feature_send_dic[send_feature_pattern][0] += 1
+            send_canidate[feature_send_dic[send_feature_pattern][1]] = False
             send_canidate[send_cnt] = False
-    print(feature_cnt_dic)
+                             
+    recv_canidate = [False] * len(all_recv_list)
+    feature_recv_dic = {}
+    for recv_cnt in range(len(all_recv_index_list)):
+        recv_tmp = all_recv_index_list[recv_cnt][0]
+        recv_feature_pattern = str(recv_tmp[7]) + str(recv_tmp[8]) + str(recv_tmp[9]) + \
+                               str(recv_tmp[10]) + str(recv_tmp[11])
+        if recv_feature_pattern not in feature_recv_dic:
+            feature_recv_dic[recv_feature_pattern] = [1, recv_cnt]
+            recv_canidate[recv_cnt] = True
+        else:
+            feature_recv_dic[recv_feature_pattern][0] += 1
+            recv_canidate[feature_recv_dic[recv_feature_pattern][1]] = False
+            recv_canidate[recv_cnt] = False
+
 ### Create connection view by add highchart line data
     # Used to avoid miss selection of same data if there exist multiple same feature pattern in the data.
     send_find = [False] * len(all_send_list)
@@ -326,61 +372,84 @@ def ds_connect_preprocess(cfg):
     recv_cnt_skip = 0 
 
     # Accounting
-    pre_sent_count, pre_recv_count, positive_max, negative_max, total_latency = 0, 0, 16, 0, 0
+    pre_sent_count, pre_recv_count, positive_min, negative_max, total_latency = 0, 0, 16, 0, 0
     who = []
-    match_cnt, neg_count, total_neg, total_pos= 0, 0, 0, 0
+    match_cnt, neg_count, pos_count, total_neg, total_pos= 0, 0, 0, 0, 0
 
     # Loop control paremeters
     latency, retry, negative = 1, True, False 
+    neg_who_dic = {} # []
+    accounting = {}
     while retry:
         retry = False
 
-        for recv_cnt in range(recv_cnt_skip, len(all_recv_index_list)):
-            total_latency, send_cnt = ds_find_sender(all_recv_index_list[recv_cnt], all_send_index_list, send_find,send_canidate, \
-                                          latency, negative,total_latency)
-### ------- Account ambibuous record (need to be filter out before making connection trace)
-            if send_cnt:
+        for recv_cnt in range(len(all_recv_index_list)):
+            if not recv_canidate[all_recv_index_list[recv_cnt][1]]:
+                continue
+
+            recv_tmp = all_recv_index_list[recv_cnt][0]
+            recv_feature_pattern = str(recv_tmp[7]) + str(recv_tmp[8]) + str(recv_tmp[9]) + \
+                                   str(recv_tmp[10]) + str(recv_tmp[11])
+
+            sfind = False
+            for send_cnt in range(len(all_send_index_list)):
+                if not send_canidate[all_send_index_list[send_cnt][1]]:
+                    continue
+
                 send_tmp = list(all_send_index_list[send_cnt][0])
                 send_feature_pattern = str(send_tmp[7]) + str(send_tmp[8]) + str(send_tmp[9]) + \
                                        str(send_tmp[10]) + str(send_tmp[11])
-                
-                if send_feature_pattern not in feature_cnt_dic:
-                    feature_cnt_dic[send_feature_pattern] = 1
-                else:
-                    feature_cnt_dic[send_feature_pattern] += 1
 
-                send_select = all_send_index_list[send_cnt][1]
+                if (recv_feature_pattern == send_feature_pattern):
+                    sfind = send_cnt
+                    match_cnt += 1
+
+                    acc_id = str(send_tmp[7]) + " to " +str(send_tmp[9])
+                    if acc_id not in accounting:
+                        accounting[acc_id] = {}
+                        accounting[acc_id]['latency'] = []
+                        accounting[acc_id]['bandwidth'] = []
+
+                    accounting[acc_id]['latency'].append(recv_tmp[0] - send_tmp[0])
+                    accounting[acc_id]['bandwidth'].append([send_tmp[0], recv_tmp[0], send_tmp[6] ])
+
+                    if  recv_tmp[0] - send_tmp[0] < 0:
+                        neg_count += 1
+                        total_neg += recv_tmp[0] - send_tmp[0]
+                        if send_tmp[3] in neg_who_dic:
+                            neg_who_dic[send_tmp[3]]['neg_count'] += 1
+                        else:
+                            neg_who_dic[send_tmp[3]] = {}
+                            neg_who_dic[send_tmp[3]]['neg_count'] = 1
+                            neg_who_dic[send_tmp[3]]['neg_max'] = 0
+                        if second_1 > abs(recv_tmp[0] - send_tmp[0]) > neg_who_dic[send_tmp[3]]['neg_max']: 
+                            negative_max = abs(recv_tmp[0] - send_tmp[0])
+                            neg_who_dic[send_tmp[3]]['neg_max'] = negative_max
+                            
+                    else:
+                        pos_count += 1
+                        total_pos += recv_tmp[0] - send_tmp[0]
+                        if positive_min > abs(recv_tmp[0] - send_tmp[0]) and who !=send_tmp[3]:
+                            positive_min = abs(recv_tmp[0] - send_tmp[0])
+                    break;
+           # total_latency, send_cnt = \
+           # ds_find_sender(all_recv_index_list[recv_cnt], all_send_index_list, send_find, send_canidate, latency, negative,total_latency)
+
+
+### ------- Account ambibuous record (need to be filter out before making connection trace)
+            if sfind:
+
+                send_select = all_send_index_list[sfind][1]
                 recv_select = all_recv_index_list[recv_cnt][1]
-                match_cnt += 1
-### ----------- Find the max latency btween sender and receiver in the current searching range.
-                if negative and (latency == 1):
-                    abs_max = abs(all_send_index_list[send_cnt][0][0] - all_recv_index_list[recv_cnt][0][0])
-                    neg_count += 1
-                    total_neg += abs_max
-                    if (abs_max > negative_max):
-                        negative_max = abs_max
-                        who = str(all_send_index_list[send_cnt][0][3]) + ',' +\
-                              str(all_send_index_list[send_cnt][0][7]) + ',' +\
-                              str(all_send_index_list[send_cnt][0][9])
-                        #print(all_send_index_list[send_cnt][0])
-                        #print(all_recv_index_list[recv_cnt][0])
-                else:
-                    if not negative and (latency == 1):
-                        if (all_send_index_list[send_cnt][0][3] != all_recv_index_list[recv_cnt][0][3]):
-                            abs_max = abs(all_send_index_list[send_cnt][0][0] - all_recv_index_list[recv_cnt][0][0])
-                            total_pos += abs_max
-                            if (abs_max < positive_max): 
-                                positive_max = abs_max
-                                #print(all_send_index_list[send_cnt][0])
-                                #print(all_recv_index_list[recv_cnt][0])
-                node2node = 'Node ' + str(all_send_index_list[send_cnt][0][7]) + \
+
+                node2node = 'Node ' + str(all_send_index_list[sfind][0][7]) + \
                             ' to Node ' + str(all_recv_index_list[recv_cnt][0][9])
                 
 ### -----------    If we want to create point to point connect effect in highchart's line chart, 
 ### ----------- we need to add null data in series for differentiating different connection.
                 if node2node in node2node_traceIndex_dic:
                     cnct_trace = cnct_traces[node2node_traceIndex_dic[node2node]]
-                    cnct_trace.append(create_cnct_trace(all_send_index_list[send_cnt][0], 1, pid_yPos_dic))
+                    cnct_trace.append(create_cnct_trace(all_send_index_list[sfind][0], 1, pid_yPos_dic))
                     cnct_trace.append(create_cnct_trace(all_recv_index_list[recv_cnt][0], 0, pid_yPos_dic))
                     cnct_trace.append(ds_cnct_trace_init())
                     cnct_traces[node2node_traceIndex_dic[node2node]] = cnct_trace
@@ -388,26 +457,25 @@ def ds_connect_preprocess(cfg):
                     node2node_traceIndex_dic[node2node] = trace_index
                     cnct_traces.append([])
                     cnct_trace = cnct_traces[trace_index]
-                    cnct_trace.append(create_cnct_trace(all_send_index_list[send_cnt][0], 1, pid_yPos_dic))
+                    cnct_trace.append(create_cnct_trace(all_send_index_list[sfind][0], 1, pid_yPos_dic))
                     cnct_trace.append(create_cnct_trace(all_recv_index_list[recv_cnt][0], 0, pid_yPos_dic))
                     cnct_trace.append(ds_cnct_trace_init())
                     cnct_traces[trace_index] = cnct_trace
                     trace_index += 1
 
-                del all_send_index_list[send_cnt]
-                del all_recv_index_list[recv_cnt]
+                del all_send_index_list[sfind]
                 send_find[send_select] = True
                 recv_find[recv_select] = True
-                recv_cnt_skip = recv_cnt
-                retry = True
-                break
-# --------- END if send_cnt:
+                #retry = True
+
+# --------- END if sfind:
 # ----- END for recv_cnt in range(recv_cnt_skip, len(all_recv_index_list)):
 # - END while retry:
 
 ### ---    Expand the searching range with larger latency if connection can not be figured out in previous given range. 
 ### --- Though in practice it should not exceed 1 second.
-        if (not retry) and True:
+
+        if ( retry) and True:
             #print(len(all_send_index_list))
             #print(len(all_recv_index_list))
             if not negative:
@@ -444,28 +512,62 @@ def ds_connect_preprocess(cfg):
     #print(len(result_send_list))
     #print(len(result_recv_list))
     #print('min positive latency: %s'%positive_max)
-    print('max negative latency: %s'%negative_max)
+
+    max_who = 0
+    for neg_who in neg_who_dic:
+        print(('%s count: %s')%(neg_who, neg_who_dic[neg_who]['neg_count']))
+        if (neg_who_dic[neg_who]['neg_count'] > max_who):
+            who = neg_who
+            max_who = neg_who_dic[who]['neg_count']
+    #if who in neg_who_dic:
+        #negative_max = neg_who_dic[who][1]
     print('match count: %s'%match_cnt)
+    print('min positive latency: %s'%positive_min)
+    print('max negative latency: %s'%negative_max)
     print('neg count %s'% neg_count)
     print('neg total %s'%total_neg)
-    print(who)
-    
-    f = open('adjust_offset.txt','w')
-    f.write(str(who))
-    f.write(',')
-    f.write(str(total_neg/neg_count))
-    f.write('\n')
-    f.close()
-    print(float(total_latency))
+
+    print('pos count %s'% pos_count)
+    print('pos total %s'%total_pos)
+    total_latency = float(total_neg)+float(total_pos)
+
+    if neg_count:
+        print('max negative latency: %s'%negative_max)
+        print('who: %s'%who)
+        f = open('adjust_offset.txt','w')
+        #if positive_min < negative_max:
+         #   negative_max = positive_min
+        #if adjust_file_exist:
+       #     if (who == int(adjust_list[0])):
+
+        #        negative_max = float(adjust_list[1]) - total_neg / neg_who_dic[who]
+
+       #     else:
+      #          second_1 = negative_max - 0.0005
+       #         who = int(adjust_list[0])
+       #         negative_max = float(adjust_list[1]) - negative_max
+        f.write(str(who))
+        f.write(',')
+        #f.write(str(total_neg/neg_count))
+        #if (positive_min - negative_max) > 0:
+          #  negative_max += (positive_min - negative_max)/2
+        f.write(str(negative_max))
+        f.write(',')
+        f.write(str(second_1))
+        f.write('\n')
+        f.close()
+          
+    print('total latency:%s'%float(total_latency))
+
     #print(cnct_trace)
     from sofa_preprocess import traces_to_json
     from sofa_models import SOFATrace
     # traces_to_json(traces, path, cfg, pid)
     traces = []
-    ambiguous = 0
-    for i in feature_cnt_dic:
-        if feature_cnt_dic[i] > 1 :
-            ambiguous += feature_cnt_dic[i] 
+    #ambiguous = 0
+    #for i in feature_cnt_dic:
+    #    if feature_cnt_dic[i] > 1 :
+    #        ambiguous += feature_cnt_dic[i] 
 
     y_categories = []
     for i in range(len(pid_yPos_dic)):
@@ -475,6 +577,19 @@ def ds_connect_preprocess(cfg):
     f = open('y_categories', 'w' )
     json.dump(y_categories, f)
     f.close()
+
+    for acc_id in accounting:
+        print('\n')
+        print(acc_id)
+        df = pd.DataFrame(accounting[acc_id]['latency'])
+        print('%%.25: %f'%(df.quantile(0.25)))
+        print('%%.50: %f'%(df.quantile(0.5)))
+        print('%%.75: %f'%(df.quantile(0.75)))
+        print('mean: %f'%(df.mean()))
+
+        for i in len(accounting[acc_id]['latency']):
+        
+
 
     for node2node in node2node_traceIndex_dic:
 

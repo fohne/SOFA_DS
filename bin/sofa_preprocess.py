@@ -533,12 +533,11 @@ def sofa_preprocess(cfg):
         mpstat_traces = list_to_csv_and_traces(logdir, mpstat_list, 'mpstat.csv', 'w')
 
 #==============================================================================
-
+    ds_pid = -1
 
     if cfg.ds:
         # ds global variables declaration for later raw data processing
         with open(logdir + 'pid.txt') as pidfd:
-            global ds_pid
             ds_pid = int(pidfd.readline())
             ds_traces = ds_do_preprocess(cfg, logdir, ds_pid)
 

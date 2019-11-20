@@ -188,7 +188,10 @@ bpf.attach_kprobe( event="ip_send_skb", fn_name="ip_send_skb")
 bpf.attach_kretprobe( event="__skb_recv_udp", fn_name="skb_recv_udp") 
 bpf.attach_kretprobe(event="sock_recvmsg", fn_name="_sock_recv_return")
 
-#bpf.attach_uprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uprobe")
+bpf.attach_uprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libddskernel.so", sym="u_writerWrite", fn_name="uprobe")
+bpf.attach_uretprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libddskernel.so", sym="u_readerRead", fn_name="uretprobe")
+bpf.attach_uretprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libddskernel.so", sym="u_readerTake", fn_name="uretprobe")
+
 #bpf.attach_uretprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uretprobe")
 
 def print_formatted_event(cpu, data, size):

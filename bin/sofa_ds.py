@@ -45,7 +45,11 @@ def ds_preprocess(cfg):
         unix_time.rstrip()
         cfg.cpu_time_offset = 0
         if (unix_time > min_time):
-            cfg.cpu_time_offset = float(min_time) - float(unix_time)
+            basss = float(min_time) - float(unix_time)
+            if basss < -28700:
+                basss += 28800
+            cfg.cpu_time_offset = basss
+            #cfg.cpu_time_offset = float(min_time) - float(unix_time)
             print(cfg.cpu_time_offset)
 
         cfg.logdir = './' + str(nodes_record_dir[i]) + '/'

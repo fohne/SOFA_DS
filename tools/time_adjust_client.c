@@ -81,7 +81,7 @@ int main(int argc, char** argv)
     msgh.msg_control = aux;
     msgh.msg_controllen = sizeof(aux);
 
-for(int i = 0; i < SEND_CNT; i++){
+for(int i = 0; i < SEND_CNT; i){
     gettimeofday(&ts_state.aorg, NULL);
     if ( sendto(serverfd, &ts_state, sizeof(ts_state), 0, (struct sockaddr *)&ser_addr, sizeof(ser_addr)) == -1) {
         perror("talker: sendto");
@@ -113,6 +113,17 @@ for(int i = 0; i < SEND_CNT; i++){
         t1_t4[i].T3 = ts_from_server->xmit;
         t1_t4[i].T4 = drv_ts;
     }
+
+double T1, T2, T3, T4;
+
+float offset[SEND_CNT];
+        T1 = t1_t4[i].T1.tv_sec + t1_t4[i].T1.tv_usec * 1.0e-6;
+        T2 = t1_t4[i].T2.tv_sec + t1_t4[i].T2.tv_usec * 1.0e-6;
+        T3 = t1_t4[i].T3.tv_sec + t1_t4[i].T3.tv_usec * 1.0e-6;
+        T4 = t1_t4[i].T4.tv_sec + t1_t4[i].T4.tv_usec * 1.0e-6;
+        offset[i] = ((T2 - T1) + (T3 - T4))/2;
+        printf("offset %d: %f\n",i, offset[i]);
+	sleep(2);
 }
 float offset[SEND_CNT];
 double T1, T2, T3, T4;
