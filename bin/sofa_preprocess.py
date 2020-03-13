@@ -27,7 +27,7 @@ from sofa_print import *
 import random 
 
 from sofa_ds_preprocess import ds_do_preprocess
-
+from sofa_ds_preprocess import dds_do_preprocess
 
 sofa_fieldnames = [
     "timestamp",  # 0
@@ -540,7 +540,7 @@ def sofa_preprocess(cfg):
         with open(logdir + 'pid.txt') as pidfd:
             ds_pid = int(pidfd.readline())
             ds_traces = ds_do_preprocess(cfg, logdir, ds_pid)
-
+            dds_traces = dds_do_preprocess(cfg, logdir, ds_pid)
 #==============================================================================
     with open('%s/diskstat.txt' % logdir) as f:
         diskstats = f.readlines()
@@ -2125,6 +2125,23 @@ def sofa_preprocess(cfg):
         sofatrace.data = ds_traces[3]
         traces.append(sofatrace)
 
+        sofatrace = SOFATrace()
+        sofatrace.name = 'dds_tx_sample'
+        sofatrace.title = 'dss_data_transmit'
+        sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
+        sofatrace.x_field = 'timestamp'
+        sofatrace.y_field = 'event'
+        sofatrace.data = dds_traces[0]
+        traces.append(sofatrace)
+ 
+        sofatrace = SOFATrace()
+        sofatrace.name = 'dss_rx_sample'
+        sofatrace.title = 'dss_data_receiver'
+        sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
+        sofatrace.x_field = 'timestamp'
+        sofatrace.y_field = 'event'
+        sofatrace.data = dds_traces[1]
+        traces.append(sofatrace)
     if cfg.enable_encode_decode:
         sofatrace = SOFATrace()
         sofatrace.name = 'nvsmi_enc'

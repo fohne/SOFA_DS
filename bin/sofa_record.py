@@ -171,6 +171,10 @@ def sofa_record(command, cfg):
     sample_freq = 99
     command_prefix = ''
 
+    os.system('sudo sysctl -w kernel.yama.ptrace_scope=0')
+    os.system('sudo sysctl -w kernel.kptr_restrict=0')
+    os.system('sudo sysctl -w kernel.perf_event_paranoid=-1')
+
     if int(open("/proc/sys/kernel/yama/ptrace_scope").read()) != 0:
         print_error(
             "Could not attach to process, please try the command below:")
@@ -257,11 +261,12 @@ def sofa_record(command, cfg):
             perf_options = ''
 
         if cfg.ds:
+            os.system('sudo ntpd -u ntp:ntp')
+            os.system('sudo ntpq -p')
             ds_prof = subprocess.call(['sudo', 'sleep', '1'])
             os.system('sudo %s/bpf_ds.py > %sds_trace&'%(cfg.script_path,logdir))
-        cmd = open('%scommand.txt' % logdir,'w') 
-        cmd.write(command)
-        cmd.close()
+            os.system('sudo %s/dds.py > %sdds_trace&'%(cfg.script_path,logdir))
+        os.system('basename %s > %scommand.txt' % (command, logdir))
         subprocess.call('cp /proc/kallsyms %s/' % (logdir), shell=True )
         subprocess.call('chmod +w %s/kallsyms' % (logdir), shell=True )
 
@@ -454,6 +459,7 @@ def sofa_record(command, cfg):
             print_info(cfg,"tried terminating strace")
         if cfg.ds:
             os.system('sudo pkill bpf')
+            os.system('sudo pkill dds')
             with open(logdir + 'pid.txt', 'w') as pidfd:
                 subprocess.call(['perf', 'script', '-i%sperf.data'%logdir, '-F', 'pid'], stdout=pidfd)
 

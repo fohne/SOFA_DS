@@ -20,6 +20,8 @@ prog = """
 #define LAYER5     0x0500
 #define FUN_RETURN 0x1000
 
+
+
 struct data_t {
     u64 ts;
     char comm[TASK_COMM_LEN];
@@ -32,7 +34,8 @@ struct data_t {
     u16 csum;
     u64 l3_ts;
 };
-
+BPF_HASH(start, struct sock *);
+BPF_HASH(w_ts,   u64, struct data_t, sizeof(struct data_t)  );
 BPF_PERF_OUTPUT(events);
 
 static void pid_comm_ts(struct data_t* data) {
@@ -42,24 +45,9 @@ static void pid_comm_ts(struct data_t* data) {
 }
 
 ////////////////////////////// LAYER 5 CONTEXT ////////////////////////////////
-int uprobe (struct pt_regs *ctx){
-    struct data_t data = {};
-    pid_comm_ts(&data);
-    data.net_layer = LAYER5|0x00;
- events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-int uretprobe (struct pt_regs *ctx){
-    struct data_t data = {};
-    data.net_layer = LAYER5|0x01;
-    pid_comm_ts(&data);
- events.perf_submit(ctx, &data, sizeof(data));
-    return 0;
-}
-
 
 ////////////////////////////// LAYER 4 CONTEXT ////////////////////////////////
-BPF_HASH(start, struct sock *);
+
 BPF_HASH(end, u64 , struct data_t);
 
 int _sock_send(struct pt_regs *ctx)
@@ -177,6 +165,9 @@ int ip_send_skb (struct pt_regs *ctx)
 
     return 0;
 }
+
+
+
 """
 
 # load BPF program
@@ -188,9 +179,19 @@ bpf.attach_kprobe( event="ip_send_skb", fn_name="ip_send_skb")
 bpf.attach_kretprobe( event="__skb_recv_udp", fn_name="skb_recv_udp") 
 bpf.attach_kretprobe(event="sock_recvmsg", fn_name="_sock_recv_return")
 
-bpf.attach_uprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libddskernel.so", sym="u_writerWrite", fn_name="uprobe")
-bpf.attach_uretprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libddskernel.so", sym="u_readerRead", fn_name="uretprobe")
-bpf.attach_uretprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libddskernel.so", sym="u_readerTake", fn_name="uretprobe")
+#bpf.attach_uprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/examples/dcps/PingPong/c/standalone/libsac_pingpong_types.so", sym="pingpong_PP_string_msgDataWriter_write", fn_name="wuprobe")
+#bpf.attach_uretprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/examples/dcps/PingPong/c/standalone/libsac_pingpong_types.so", sym="pingpong_PP_string_msgDataWriter_write", fn_name="wuretprobe")
+#bpf.attach_uprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/examples/dcps/PingPong/c/standalone/libsac_pingpong_types.so", sym="pingpong_PP_string_msgDataReader_take", fn_name="ruprobe")
+#bpf.attach_uretprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/examples/dcps/PingPong/c/standalone/libsac_pingpong_types.so", sym="pingpong_PP_string_msgDataReader_take", fn_name="wuretprobe")
+#bpf.attach_uretprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libddskernel.so", sym="u_readerRead", fn_name="uretprobe")
+#bpf.attach_uretprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libddskernel.so", sym="u_readerTake", fn_name="uretprobe")
+
+#bpf.attach_uprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libdcpssac.so", sym= "DDS_DataWriter_write", fn_name="")
+#bpf.attach_uprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libddskernel.so" , sym= "u_writerWrite", fn_name="")
+#bpf.attach_uprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libddskernel.so" , sym="u_writeWithHandleAction", fn_name="")
+#bpf.attach_uprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libdcpssac.so", sym="_DataWriterCopy", fn_name="")
+#bpf.attach_uprobe(name="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/libddskernel.so", sym="v_writerWrite", fn_name="")
+
 
 #bpf.attach_uretprobe(name="/home/alvin/workspace/opensplice/install/HDE/x86_64.linux/lib/libddskernel.so", sym="v_groupWrite", fn_name="uretprobe")
 
