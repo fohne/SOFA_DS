@@ -13,7 +13,7 @@ import subprocess
 from sofa_config import *
 from sofa_preprocess import sofa_preprocess
 from sofa_ds_preprocess import ds_connect_preprocess
-
+from dds_calc_topic_latency import dds_calc_topic_latency
 class DSTrace:
     data = []
     name = []
@@ -57,4 +57,5 @@ def ds_preprocess(cfg):
         cfg.logdir = save_logdir
 
     pid2y_pos_dic = ds_connect_preprocess(cfg)
+    dds_calc_topic_latency(cfg)
 

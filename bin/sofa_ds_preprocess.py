@@ -303,7 +303,7 @@ def dds_do_preprocess(cfg, logdir, pid):
             list_to_csv_and_traces(logdir, SOFA_trace_lists[1], 'dds_trace_rx%s.csv'%pid, 'w')
            ]
 
-
+# Not used
 def ds_find_sender(recv_iter, all_send_index_list, send_find, send_canidate, latency, negative,total_latency):
 
     recv_tmp = recv_iter[0]
@@ -401,7 +401,7 @@ def ds_connect_preprocess(cfg):
 
     all_ds_df.sort_values(by='timestamp', inplace=True)
     all_ds_df.to_csv('processed_ds_record', mode='w', index=False, float_format='%.9f')
-    print('raw ds preprocess done')
+    print('In kernel ds data preprocess done')
     de_noise = all_ds_df.values.tolist()
     max_cnt = 0
     for command in command_dic:
@@ -673,7 +673,7 @@ def ds_connect_preprocess(cfg):
 
     recv_nfind = [not i for i in recv_find]
     send_nfind = [not i for i in send_find]
-    print(send_nfind)
+    #print(send_nfind)
     recv_not_find = all_recv_df[recv_nfind]
     send_not_find = all_send_df[send_nfind]
     all_not_df = pd.concat([send_not_find, recv_not_find], ignore_index=True, sort=False)
@@ -803,7 +803,7 @@ def ds_connect_preprocess(cfg):
      #   if not recv_find[i] and not recv_canidate[i]:
       #      print(all_recv_list[i])
 
-
+    print('\n\n')
     for node2node in node2node_traceIndex_dic:
 
         cnct_trace = cnct_traces[node2node_traceIndex_dic[node2node]]

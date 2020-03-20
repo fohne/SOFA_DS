@@ -3,6 +3,11 @@ from bcc import BPF
 
 # define BPF program
 prog = """
+#ifdef asm_inline
+#undef asm_inline
+#define asm_inline asm
+#endif
+
 #include <linux/sched.h>
 #include <net/inet_sock.h>
 #include <linux/skbuff.h>
@@ -11,6 +16,7 @@ prog = """
 #include <linux/in.h>
 #include <linux/udp.h>
 #include <linux/ip.h>
+
 
 #define SEND       0x0000
 #define RECV       0x0010

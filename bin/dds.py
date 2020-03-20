@@ -3,9 +3,12 @@ from bcc import BPF
 import re
 # define BPF program
 prog = """
+#ifdef asm_inline
+#undef asm_inline
+#define asm_inline asm
+#endif
+
 #include <linux/sched.h>
-
-
 BPF_PERF_OUTPUT(events);
 
 BPF_HASH(start, u64,u64);
@@ -154,7 +157,7 @@ int _DataWriterCopy(struct pt_regs *ctx){
         }
     }
 
-    events.perf_submit(ctx, &data, sizeof(data));
+  //  events.perf_submit(ctx, &data, sizeof(data));
     return 0;
 }
 
@@ -181,17 +184,25 @@ int writerWrite(struct pt_regs *ctx){
     data.v_msg = PT_REGS_PARM3(ctx);
     bpf_probe_read(&v_mess, sizeof(v_message), (const void *)PT_REGS_PARM3(ctx));
     data.seq = v_mess.sequenceNumber;
-    u64* w_info_p;
-    u64 w_info;
 
+    writerInfo* w_info_p;
+    writerInfo w_info;
 data.gid_sys = v_mess.writerGID.systemId;
 data.gid_local = v_mess.writerGID.localId;
 data.gid_seria = v_mess.writerGID.serial;
     w_info_p = vmess_weiterinfo_hash.lookup(&data.v_msg);
     if (w_info_p) {
         w_info = *w_info_p;
-        data.writer = w_info;
-        //data.dds_data = w_info.data;
+        data.writer = w_info.writer;
+
+        topic_info* t_info_p;
+        topic_info  t_info = {};
+    
+        t_info_p = topic_info_hash.lookup(w_info_p);
+        if (t_info_p) {
+            t_info = *t_info_p;
+              bpf_probe_read_str(data.topic_name, 64, (const void *)t_info.topic_name);        
+        }
     }
 
     events.perf_submit(ctx, &data, sizeof(data));
@@ -362,13 +373,14 @@ int DDS_ReaderCommon_samples_flush_copy(struct pt_regs *ctx) { // 1:data (v_mess
     u64* reader;
     reader = read_topic_hash.lookup(&data.pid);
     if (reader) {
-   // topic_info* t_info_p;
-   // topic_info  t_info = {};
-   //     t_info_p = topic_info_hash.lookup(&reader);
-   //     if (t_info_p) {
-   //         t_info = *t_info_p;
-  //            bpf_probe_read_str(data.topic_name, 64, (const void *)t_info.topic_name);        
-    //    }
+    data.writer = *reader;
+    topic_info* t_info_p;
+    topic_info  t_info = {};
+        t_info_p = topic_info_hash.lookup(reader);
+        if (t_info_p) {
+            t_info = *t_info_p;
+              bpf_probe_read_str(data.topic_name, 64, (const void *)t_info.topic_name);        
+        }
      }
     events.perf_submit(ctx, &data, sizeof(data));
     return 0;
@@ -376,9 +388,19 @@ int DDS_ReaderCommon_samples_flush_copy(struct pt_regs *ctx) { // 1:data (v_mess
 }
 
 void _DataReader_samples_flush_copy(struct pt_regs *ctx) {
-
-
     u64 reader = PT_REGS_PARM1(ctx);
+if (0){
+    struct data_t data = {};
+    data.fun_ID = 99;
+    topic_info* t_info_p;
+    topic_info  t_info = {};
+    t_info_p = topic_info_hash.lookup(&reader);
+    if (t_info_p) {
+        t_info = *t_info_p;
+        bpf_probe_read_str(data.topic_name, 64, (const void *)t_info.topic_name);        
+    }
+    events.perf_submit(ctx, &data, sizeof(data));
+}
     u64 pid = bpf_get_current_pid_tgid();
     read_topic_hash.update(&pid, &reader);
 }
@@ -546,6 +568,9 @@ bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_DomainParticipant_
 bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_Publisher_create_datawriter", fn_name="DDS_Publisher_create_datawriter")
 bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_Publisher_create_datawriter", fn_name="r_DDS_Publisher_create_datawriter")
 
+bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_Subscriber_create_datareader", fn_name="DDS_Subscriber_create_datareader")
+bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_Subscriber_create_datareader", fn_name="r_DDS_Subscriber_create_datareader")
+
 
 ##### writerWrite / v_Message Info 
 bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym= "DDS_DataWriter_write", fn_name="DDS_DataWriter_write")
@@ -559,8 +584,8 @@ bpf.attach_uprobe(name="%slibddskernel.so"%LIBPATH, sym="writerWrite", fn_name="
 ##### ReaderRead / v_Message Info 
 bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_ReaderCommon_samples_flush_copy", fn_name="DDS_ReaderCommon_samples_flush_copy")
 
-
-
+bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="_DataReader_samples_flush_copy", fn_name="_DataReader_samples_flush_copy")
+bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="_DataReader_samples_flush_copy", fn_name="r_DataReader_samples_flush_copy")
 # RTPS_WRITE / V_Message Info
 bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="rtps_write", fn_name="rtps_write")
 #bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="write_sample_kernel_seq_eot", fn_name="write_sample_kernel_seq_eot")
@@ -609,7 +634,7 @@ def print_event(cpu, data, size):
 %20d,%20d,\
 %20d,%14d,%14d,\
 %14d,%14d,%14d,%14d,%14d" % 
-         (event.ts, event.comm, event.topic_name, event.pid,
+         (event.ts, str(event.comm, "utf-8"), str(event.topic_name, "utf-8"), event.pid,
           event.fun_ID, event.topic, 
           event.writer, event.dds_data, event.writer_info,  
           event.v_msg, event.gid_sys, event.gid_local, event.gid_seria, event.seq 
