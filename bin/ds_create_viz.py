@@ -27,14 +27,17 @@ def ds_create_viz(ds_logpath, nodes_record_dir):
 
         top_index = top_index + '\n        <div id="container%s" style="min-width: 310px; height: 400px; max-width: 90%%; margin: 0 auto"></div>' % nodes_record_dir[i]
         top_index = top_index + '\n        <script src="report%s.js"></script>' % nodes_record_dir[i]
-        top_index = top_index + '\n        <script src="timeline%s.js"></script>\n' % nodes_record_dir[i]
-
+        top_index = top_index + '\n        <script src="outfitter%s.js"></script>' % nodes_record_dir[i]
+        top_index = top_index + '\n        <script src="timeline%s.js"></script>' % nodes_record_dir[i]
+        top_index = top_index + '\n        <embed style="width:100%%; height:300px;" src="%s/swarms_report.txt">\n' % nodes_record_dir[i]
         replace_string = timeline.replace('container', 'container%s' % nodes_record_dir[i])
         replace_string = replace_string.replace('sofa_traces', 'sofa_traces%s' % nodes_record_dir[i])
+        replace_string = replace_string.replace('outlier', 'outlier%s' % nodes_record_dir[i])
         replace_string = replace_string.replace('Time Versus Functions and Events', 'Functions and Events Timeline on Node %s' % node_ip)
 
         f = open('timeline%s.js' % nodes_record_dir[i], 'w')
         f.write(replace_string)
+        os.system('cp %s/outfitter.js ./outfitter%s.js' % (nodes_record_dir[i], nodes_record_dir[i]))
         os.system('cp %s/report.js ./report%s.js' % (nodes_record_dir[i], nodes_record_dir[i]))
         f.close()
         pass

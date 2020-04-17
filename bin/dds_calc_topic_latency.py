@@ -3,6 +3,36 @@ import glob
 import os
 import re
 import pandas as pd   
+import json
+from statistics import *
+
+class Point:
+    xAxis = []
+    yAxis = []
+    x = []
+    y = []
+class LabelAnnotation:
+
+    text = []
+
+
+def annotating_traces_to_json(traces, path):
+    if len(traces) == 0:
+        print_warning("Empty traces!")
+        return
+    with open(path, 'w') as f:
+        for trace in traces:
+            label = LabelAnnotation()
+            label.point['x'] = trace[0]
+            label.point['xAxis'] = 0
+            label.point['y'] = trace[1]
+            label.point['yAxis'] = 0
+            label.text = "Trace ID :[" + str(trace[2]) + "]" + "Latency: [" + str(trace[3]) + "]"
+
+            json.dump(label, f)
+           
+
+
 def dds_calc_topic_latency(cfg):
     logdir = cfg.logdir
     dds_trace_field = ['timestamp', 'comm', 'topic_name', 'tgid','tid','fid','topic_p','writer_p','data_p','winfo_p', 
@@ -142,14 +172,16 @@ def dds_calc_topic_latency(cfg):
     recv_cnt_skip = 0 
 
     # Accounting
-    pre_sent_count, pre_recv_count, positive_min, negative_max, total_latency = 0, 0, 16, 0, 0
+
     who = 0
-    match_cnt, neg_count, pos_count, total_neg, total_pos= 0, 0, 0, 0, 0
+    match_cnt, latency_cnt = 0,0
 
     # Loop control paremeters
     latency, retry, negative = 1, True, False 
     neg_who_dic = {} # []
     accounting = {}
+    latency_table = {}
+    
     while retry:
         retry = False
 
@@ -181,9 +213,13 @@ def dds_calc_topic_latency(cfg):
                     if acc_id not in accounting:
                         accounting[acc_id] = {}
                         accounting[acc_id]['latency'] = []
-
+                        accounting[acc_id]['from'] = send_tmp[3]
+                        accounting[acc_id]['to'] = recv_tmp[3]
+                        latency_table[acc_id] =[]
+          
                     accounting[acc_id]['latency'].append(recv_tmp[0] - send_tmp[0])
-
+                    latency_table[acc_id].append([recv_tmp[3],send_tmp[3],recv_tmp[0],recv_tmp[5],send_tmp[0],send_tmp[5],recv_tmp[0] - send_tmp[0],latency_cnt])
+                    latency_cnt +=1
                   
                     break;
 
@@ -228,17 +264,66 @@ def dds_calc_topic_latency(cfg):
     all_not_df.to_csv('nfound', mode='w', index=False, float_format='%.9f')
 
 
-          
+    outfitter = []
     for acc_id in accounting:
 
         print(acc_id+'\n')
 
         df = pd.DataFrame(accounting[acc_id]['latency'])
+
+
         print('Latency')
+        print('%%.25: %f'%(df.quantile(0.25)))
         print('%%.25: %f'%(df.quantile(0.25)))
         print('%%.50: %f'%(df.quantile(0.5)))
         print('%%.75: %f'%(df.quantile(0.75)))
         print('%%.95: %f'%(df.quantile(0.95)))
-        print('mean: %f'%(df.mean()))
+        print('%%1.0: %f'%(df.quantile(1)))
+        mean_result = df.mean()
+        print('mean: %f'%mean_result)
+
+        print('pstdev: %f'%(pstdev(df[0][0:])))
+        print('pvariance: %f'%(pvariance(df[0][0:2])))
+
+        result_stdev = stdev(df[0][0:])
+        print('stdev: %f'%result_stdev)
+
+        for i in range(df.size):
+            if (float(df[0][i]) > (float(mean_result) +  float(result_stdev*3))):
+                outfitter.append(latency_table[acc_id][i])
+
+#    rpid     spid      rx       ry        sx       sy        lag      id
+#[recv_pid, send_pid, recv_ts, recv_fid, send_ts, send_fid, latancy, index]
+    for i in outfitter:
+        pass
+        #print(i)
+
+
+    for nd_dir_iter in nodes_dir:
+        out_trace = []
+        print(nd_dir_iter)
+        f = open ('%s/outfitter.js'%nd_dir_iter, 'w')
+        for i in outfitter:
+            #print("%d,%d"%(i[0],int(nd_dir_iter)))
+            if (i[0] == int(nd_dir_iter)):
+                out_trace.append([i[2],i[3],i[6],i[7]])
+            if (i[1] == int(nd_dir_iter)):
+                out_trace.append([i[4],i[5],i[6],i[7]])
+        f.write("outlier = [")
+        for i in range(len(out_trace)):
+            print(out_trace[i])
+          #  f.write("{point: {x: %f,y: %f,xAxis:0,yAxis:0},text: \"(%f,%f)<br/>%s %fms\"}"%(out_trace[i][0],out_trace[i][1],out_trace[i][0],out_trace[i][1],"label:"+str(out_trace[i][3])+" <br/>latency:",out_trace[i][2]*1000))
+            f.write("{visible: true,labels: [{shape: 'connector', point: {x: %f,y: %f,xAxis:0,yAxis:0},text: \"%s %f ms\"}]}"%(out_trace[i][0],out_trace[i][1],"label:"+str(out_trace[i][3])+" <br/>latency:",out_trace[i][2]*1000))
+            if i != (len(out_trace) - 1):
+                f.write(',\n')
+        f.write("]\n\n")
+        f.write("outlier%d = outlier" % int(nd_dir_iter))
+        print('\n\n')
+         
+        #annotating_traces_to_json(out_trace,'%s/outfitter.txt'%nd_dir_iter)
+
+        
+
 
     print('\nTotal match count: %s'%match_cnt)
+    return (float(mean_result) +  float(result_stdev*3))

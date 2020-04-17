@@ -67,9 +67,9 @@ typedef struct writerInfo_s {
      void* data;
 } writerInfo;
 
-BPF_HASH(writer_info_hash, u64, writerInfo, sizeof(writerInfo));
+BPF_HASH(writer_info_hash, u64, writerInfo);
 
-BPF_HASH(topic_info_hash, u64, topic_info, sizeof(topic_info));
+BPF_HASH(topic_info_hash, u64, topic_info);
 BPF_HASH(vmess_weiterinfo_hash, u64);
 BPF_HASH(read_topic_hash, u64);
 static void pid_comm_ts(struct data_t* data) {

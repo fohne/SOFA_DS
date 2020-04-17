@@ -34,6 +34,15 @@ Highcharts.chart('container', {
         backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF',
         borderWidth: 1
     },
+ //   annotations: [{
+ //       labelOptions: {
+//            allowOverlap: false,
+//            shape: 'connector'
+//
+ //       },
+//        labels: outlier
+//    }],
+annotations: outlier,
     plotOptions: {
         scatter: {
             marker: {
