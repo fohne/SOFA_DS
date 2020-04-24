@@ -50,7 +50,7 @@ def ds_preprocess(cfg):
                 basss += 28800
             cfg.cpu_time_offset = basss
             #cfg.cpu_time_offset = float(sofa_timebase_min) - float(unix_time)
-            print(cfg.cpu_time_offset)
+            print("%d, %f" %(int(nodes_record_dir[i]),cfg.cpu_time_offset))
 
         cfg.logdir = './' + str(nodes_record_dir[i]) + '/'
         sofa_preprocess(cfg)

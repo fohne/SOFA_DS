@@ -193,7 +193,7 @@ def ds_do_preprocess(cfg, logdir, pid):
 
     pid2ip = ds_tx_df[0:1].values.tolist()
     pid2ip = pid2ip[0]
-    pid2ip = str(pid2ip[3]) + ' ' + str(pid2ip[7])
+    pid2ip = str(pid2ip[3]) + ' ' + str(pid2ip[7]) +":"+str(pid2ip[8])
     f = open ('%spid2ip.txt'%logdir, 'w')
     f.write(pid2ip)
     f.close()
@@ -405,8 +405,7 @@ def ds_connect_preprocess(cfg):
     print('In kernel ds data preprocess done')
     de_noise = all_ds_df.values.tolist()
     max_cnt = 0
-
-    discard = """
+    discard="""
     for command in command_dic:
 
         cnt = False
@@ -421,9 +420,9 @@ def ds_connect_preprocess(cfg):
 
     de_noise = de_noise[max_cnt:]
     all_ds_df = pd.DataFrame(de_noise, columns=ds_trace_field)
-"""
+    """
 
-#    y = [0,0,0,0,0,0,0,0,0,0,0,0,0]
+    y = [0,0,0,0,0,0,0,0,0,0,0,0,0]
 
     ds_df_no_multicast = pd.DataFrame([], columns=ds_trace_field)
     ds_df_no_multicast = all_ds_df.apply( lambda x: x if (int(x['d_ip'].split('.')[0]) & 0xf0 != 0xe0) else None

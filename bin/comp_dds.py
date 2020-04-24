@@ -601,7 +601,7 @@ int _sock_recv_ret(struct pt_regs *ctx)
 
 bpf = BPF(text=intrucode)
 
-LIBPATH="/home/ubuntu/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/"
+LIBPATH="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/"
 
 # Topic information recording
 bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_DomainParticipant_create_topic", fn_name="T_GetTopicName")

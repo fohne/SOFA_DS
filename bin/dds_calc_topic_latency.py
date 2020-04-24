@@ -111,11 +111,15 @@ def dds_calc_topic_latency(cfg):
     all_send_df = all_dds_df[filter]
     #all_send_df = all_send_df.apply(lambda x: x if (x['comm'].find('xmit.user')>-1) else None, result_type='broadcast', axis=1)
     all_send_df = all_send_df.dropna()	
+
+    all_send_df.to_csv('all_dds_send', mode='w', index=False, float_format='%.9f')
     all_send_list = all_send_df.values.tolist()
 
     filter = all_dds_df['fid'] == 21
     all_recv_df = all_dds_df[filter]
+    all_recv_df.to_csv('all_dds_recv', mode='w', index=False, float_format='%.9f')
     all_recv_list = all_recv_df.values.tolist()
+
 
 ### Create list to accelerate preprocess when finding network connection which is accomplished by remove redundant calculation.
     all_send_index_list = []
