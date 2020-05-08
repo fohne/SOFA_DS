@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 from bcc import BPF
 import re
 # define BPF program
@@ -70,8 +70,8 @@ typedef struct writerInfo_s {
 BPF_HASH(writer_info_hash, u64, writerInfo);
 
 BPF_HASH(topic_info_hash, u64, topic_info);
-BPF_HASH(vmess_weiterinfo_hash, u64);
-BPF_HASH(read_topic_hash, u64);
+BPF_HASH(vmess_weiterinfo_hash, u64,writerInfo);
+BPF_HASH(read_topic_hash, u64,u64);
 static void pid_comm_ts(struct data_t* data) {
     data->pid = bpf_get_current_pid_tgid();
     data->ts = bpf_ktime_get_ns();
@@ -182,6 +182,7 @@ int writerWrite(struct pt_regs *ctx){
     data.fun_ID = 13;
     //data.writer = PT_REGS_PARM1(ctx); //v_writer
     data.v_msg = PT_REGS_PARM3(ctx);
+    u64 msg_p = data.v_msg;
     bpf_probe_read(&v_mess, sizeof(v_message), (const void *)PT_REGS_PARM3(ctx));
     data.seq = v_mess.sequenceNumber;
 
@@ -190,15 +191,15 @@ int writerWrite(struct pt_regs *ctx){
 data.gid_sys = v_mess.writerGID.systemId;
 data.gid_local = v_mess.writerGID.localId;
 data.gid_seria = v_mess.writerGID.serial;
-    w_info_p = vmess_weiterinfo_hash.lookup(&data.v_msg);
+    w_info_p =(writerInfo*) vmess_weiterinfo_hash.lookup(&msg_p);
     if (w_info_p) {
         w_info = *w_info_p;
         data.writer = w_info.writer;
-
+u64 tmp  = w_info_p->writer;
         topic_info* t_info_p;
         topic_info  t_info = {};
     
-        t_info_p = topic_info_hash.lookup(w_info_p);
+        t_info_p = (topic_info*) topic_info_hash.lookup(&tmp);
         if (t_info_p) {
             t_info = *t_info_p;
               bpf_probe_read_str(data.topic_name, 64, (const void *)t_info.topic_name);        
@@ -369,14 +370,15 @@ int DDS_ReaderCommon_samples_flush_copy(struct pt_regs *ctx) { // 1:data (v_mess
     data.gid_local = v_mess.writerGID.localId;
     data.gid_seria = v_mess.writerGID.serial;
     data.seq = v_mess.sequenceNumber;
-
+u64 pidip = data.pid;
     u64* reader;
-    reader = read_topic_hash.lookup(&data.pid);
+    reader = read_topic_hash.lookup(&pidip);
     if (reader) {
     data.writer = *reader;
+    u64 tmp = *reader;
     topic_info* t_info_p;
     topic_info  t_info = {};
-        t_info_p = topic_info_hash.lookup(reader);
+        t_info_p =(topic_info* ) topic_info_hash.lookup(&tmp);
         if (t_info_p) {
             t_info = *t_info_p;
               bpf_probe_read_str(data.topic_name, 64, (const void *)t_info.topic_name);        
@@ -557,7 +559,7 @@ int ddsi_conn_write(struct pt_regs *ctx){
 # 89 sendmsg (syscall)
 
 ##### Prober Variable Initialization
-LIBPATH="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/"
+LIBPATH="/home/mxmsl2/yu-hong/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/"
 
 ##### load BPF program
 bpf = BPF(text=prog)
