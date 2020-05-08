@@ -18,6 +18,7 @@ import numpy as np
 import re
 import getpass
 import pexpect
+import random
 
 from sofa_print import *
 
@@ -164,7 +165,8 @@ def sofa_record(command, cfg):
     p_pcm_numa = None 
     logdir = cfg.logdir
     if cfg.ds:
-        logdir = cfg.logdir + "ds/"
+        tmp_dir = str(random.randrange(100000))
+        logdir = cfg.logdir + "ds_finish/"+ tmp_dir + '/'
     p_strace = None
     p_pystack = None
     print_info(cfg,'SOFA_COMMAND: %s' % command)
@@ -467,9 +469,7 @@ def sofa_record(command, cfg):
             with open(logdir + 'pid.txt') as pidfd:
                 pidAsNodeName = int(pidfd.readline())
 
-            os.system('mkdir -p %sds_finish/%d' % (cfg.logdir, pidAsNodeName))
-            os.system('mv %s* %sds_finish/%d' % (logdir, cfg.logdir, pidAsNodeName))
-            os.system('rm -r %s' % (logdir))
+            os.system('mv %s %sds_finish/%d/' % (logdir, cfg.logdir, pidAsNodeName))
 
         os.system('rm perf.data')
     except BaseException:
