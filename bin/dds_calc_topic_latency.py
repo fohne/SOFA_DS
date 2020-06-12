@@ -136,7 +136,12 @@ def dds_calc_topic_latency(cfg):
     feature_send_dic = {}
     for send_cnt in range(len(all_send_index_list)):
         send_tmp = all_send_index_list[send_cnt][0]
-        send_feature_pattern = str(send_tmp[11]) + str(send_tmp[12]) + \
+
+
+#['timestamp', 'comm', 'topic_name', 'tgid','tid','fid','topic_p','writer_p',
+#    'data_p', 'winfo_p', 'v_msg', 'gid_sys', 'gid_local', 'gid_seria', 'seq']
+
+        send_feature_pattern = str(send_tmp[2]) + str(send_tmp[11]) + str(send_tmp[12]) + \
                                str(send_tmp[13]) + str(send_tmp[14])
         if send_feature_pattern not in feature_send_dic:
             feature_send_dic[send_feature_pattern] = [1, send_cnt]
@@ -150,7 +155,7 @@ def dds_calc_topic_latency(cfg):
     feature_recv_dic = {}
     for recv_cnt in range(len(all_recv_index_list)):
         recv_tmp = all_recv_index_list[recv_cnt][0]
-        recv_feature_pattern = str(recv_tmp[11]) + str(recv_tmp[12]) + \
+        recv_feature_pattern = str(recv_tmp[2]) + str(recv_tmp[11]) + str(recv_tmp[12]) + \
                                str(recv_tmp[13]) + str(recv_tmp[14])
         if recv_feature_pattern not in feature_recv_dic:
             feature_recv_dic[recv_feature_pattern] = [1, recv_cnt]
@@ -194,7 +199,7 @@ def dds_calc_topic_latency(cfg):
                 continue
 
             recv_tmp = all_recv_index_list[recv_cnt][0]
-            recv_feature_pattern = str(recv_tmp[11]) + str(recv_tmp[12]) +  \
+            recv_feature_pattern = str(recv_tmp[2]) + str(recv_tmp[11]) + str(recv_tmp[12]) +  \
                                    str(recv_tmp[13]) + str(recv_tmp[14])
 
             sfind = False
@@ -206,19 +211,22 @@ def dds_calc_topic_latency(cfg):
                 send_tmp = list(all_send_index_list[send_cnt][0])
                 if  recv_tmp[0] - send_tmp[0] < 0:
                     pass #break
-                send_feature_pattern = str(send_tmp[11]) + str(send_tmp[12]) + \
+                send_feature_pattern = str(send_tmp[2]) + str(send_tmp[11]) + str(send_tmp[12]) + \
                                        str(send_tmp[13]) + str(send_tmp[14])
 
                 if (recv_feature_pattern == send_feature_pattern):
+                    #print(send_feature_pattern)
                     sfind = send_cnt
                     match_cnt += 1
-
-                    acc_id = "Topic:["+str(send_tmp[2]) +"] from " + str(send_tmp[1]) + " to " + str(recv_tmp[1])
+                    #print(recv_tmp[0] - send_tmp[0])
+                    #print(match_cnt)
+                    acc_id = "Topic:{"+str(send_tmp[2]) +"} from " + pid_ip_dic[str(send_tmp[3])] + " to " + pid_ip_dic[str(recv_tmp[3])]
                     if acc_id not in accounting:
                         accounting[acc_id] = {}
                         accounting[acc_id]['latency'] = []
                         accounting[acc_id]['from'] = send_tmp[3]
                         accounting[acc_id]['to'] = recv_tmp[3]
+                        accounting[acc_id]['topic'] = str(send_tmp[2])
                         latency_table[acc_id] =[]
           
                     accounting[acc_id]['latency'].append(recv_tmp[0] - send_tmp[0])
@@ -254,9 +262,6 @@ def dds_calc_topic_latency(cfg):
         result_recv_list.append(all_recv_index_list[i][0])
 
 
-
-
-
     recv_nfind = [not i for i in recv_find]
     send_nfind = [not i for i in send_find]
 
@@ -267,47 +272,60 @@ def dds_calc_topic_latency(cfg):
     all_not_df.sort_values(by='timestamp', inplace=True)
     all_not_df.to_csv('nfound', mode='w', index=False, float_format='%.9f')
 
-
-    outfitter = []
+    analysis_cnt_dic = {}
+    outlier = []
+    os.system('pwd')
     for acc_id in accounting:
-
-        print(acc_id+'\n')
-
         df = pd.DataFrame(accounting[acc_id]['latency'])
 
+        from_pid = accounting[acc_id]['from']
 
-        print('Latency')
-        print('%%.25: %f'%(df.quantile(0.25)))
-        print('%%.25: %f'%(df.quantile(0.25)))
-        print('%%.50: %f'%(df.quantile(0.5)))
-        print('%%.75: %f'%(df.quantile(0.75)))
-        print('%%.95: %f'%(df.quantile(0.95)))
-        print('%%1.0: %f'%(df.quantile(1)))
+        if from_pid not in analysis_cnt_dic:
+            analysis_cnt_dic[from_pid] = 0
+        analysis_cnt_dic[from_pid] += 1
+
+        f = open('%s/topic_lat_report%s.txt' % (from_pid, analysis_cnt_dic[from_pid]),'w')
+
+        f.write('Topic: %s\n' % accounting[acc_id]['topic'])
+        f.write('From:  %s\n' % pid_ip_dic[str(accounting[acc_id]['from'])])
+        f.write('To:    %s\n\n' % pid_ip_dic[str(accounting[acc_id]['to'])])
+
+        f.write('Latency\n')
+
+        f.write('%%.25: %f\n'%(df.quantile(0.25)))
+        f.write('%%.50: %f\n'%(df.quantile(0.5)))
+        f.write('%%.75: %f\n'%(df.quantile(0.75)))
+        f.write('%%.95: %f\n'%(df.quantile(0.95)))
+        f.write('%%1.0: %f\n\n'%(df.quantile(1)))
+
         mean_result = df.mean()
-        print('mean: %f'%mean_result)
-
-        print('pstdev: %f'%(pstdev(df[0][0:])))
-        print('pvariance: %f'%(pvariance(df[0][0:2])))
+        f.write('mean:      %f\n'%mean_result)
+        f.write('pstdev:    %f\n'%(pstdev(df[0][0:])))
+        f.write('pvariance: %f\n'%(pvariance(df[0][0:2])))
 
         result_stdev = stdev(df[0][0:])
-        print('stdev: %f'%result_stdev)
+        f.write('stdev:     %f\n'%result_stdev)
 
         for i in range(df.size):
             if (float(df[0][i]) > (float(mean_result) +  float(result_stdev*3))):
-                outfitter.append(latency_table[acc_id][i])
-
+                outlier.append(latency_table[acc_id][i])
+        f.close()
 #    rpid     spid      rx       ry        sx       sy        lag      id
 #[recv_pid, send_pid, recv_ts, recv_fid, send_ts, send_fid, latancy, index]
-    for i in outfitter:
+    for i in analysis_cnt_dic:
+        f = open('%s/topic_lat_report_cnt.txt'%i,'w')
+        f.write('%s\n' % str(analysis_cnt_dic[i]))
+        f.close()
+
+    for i in outlier:
         pass
         #print(i)
 
 
     for nd_dir_iter in nodes_dir:
         out_trace = []
-        print(nd_dir_iter)
-        f = open ('%s/outfitter.js'%nd_dir_iter, 'w')
-        for i in outfitter:
+        f = open ('%s/outlier.js'%nd_dir_iter, 'w')
+        for i in outlier:
             #print("%d,%d"%(i[0],int(nd_dir_iter)))
             if (i[0] == int(nd_dir_iter)):
                 out_trace.append([i[2],i[3],i[6],i[7]])
@@ -322,11 +340,46 @@ def dds_calc_topic_latency(cfg):
                 f.write(',\n')
         f.write("]\n\n")
         f.write("outlier%d = outlier" % int(nd_dir_iter))
+        f.close()
         print('\n\n')
          
-        #annotating_traces_to_json(out_trace,'%s/outfitter.txt'%nd_dir_iter)
 
-        
+
+
+    color_table = ['255,173,173','255,214,165','253,255,182','202,255,191','155,246,255','160,196.255','189,178,255','255,198,255']
+
+    for nd_dir_iter in nodes_dir:
+        out_trace = []
+        for i in outlier:
+            #print("%d,%d"%(i[0],int(nd_dir_iter)))
+            if (i[0] == int(nd_dir_iter)):
+                out_trace.append([i[2],i[3],i[6],i[7]])
+            if (i[1] == int(nd_dir_iter)):
+                out_trace.append([i[4],i[5],i[6],i[7]])
+
+
+        f = open ('%s/hl.js'%nd_dir_iter, 'w')
+
+        f.write("hl%d  = {\
+                       name: 'Highlight',\
+                       marker:{radius: 3},\
+                       tooltip: {\
+                       headerFormat: '<b>{series.name}</b><br>',\
+                       pointFormat: '{point.x} , {point.y},<br> {point.lan}'\
+                       },\
+                       data: [" % int(nd_dir_iter)) 
+        for i in range(len(out_trace)):
+            color_index = out_trace[i][3] % len(color_table)
+            f.write("{x:%f, y:%f,lan:%f ,color:'rgba(%s,.8)'}" % (out_trace[i][0], out_trace[i][1], out_trace[i][2],color_table[color_index])) 
+
+            if i != (len(out_trace) - 1):
+
+                f.write(',\n')
+        f.write("]  }\n\n")
+        #f.write("hl%d = hl" % int(nd_dir_iter))
+        f.close()
+        print('\n\n')
+    
 
 
     print('\nTotal match count: %s'%match_cnt)

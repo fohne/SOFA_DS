@@ -371,11 +371,16 @@ def traces_to_json(traces, path, cfg, pid):
             f.write("\n\n")
         if cfg.ds:
             f.write("sofa_traces%s = [ "%pid)
+
         else:
             f.write("sofa_traces = [ ")
         for trace in traces:
             if len(trace.data) > 0:
                 f.write(trace.name + ",")
+        if cfg.ds:
+            pass
+            #f.write("hl%s"%pid)
+
         f.write(" ]")
 
 def sofa_preprocess(cfg):

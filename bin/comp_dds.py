@@ -4,7 +4,7 @@ from bcc import BPF
 intrucode="""
 BPF_PERF_OUTPUT(events);
 
-//#define DEBUG 
+#define DEBUG 
 
 #define    DDS_RECORD     1
 #define   SOCK_RECORD     2
@@ -69,8 +69,9 @@ typedef struct bpf_data_t {
     u64  ts;
     u64  ets;
     u64  pid;
-    char comm[TASK_COMM_LEN];
-    char tName[64];
+  //  char comm[TASK_COMM_LEN];
+    char comm[32];
+    char tName[32];
 
     u8   recordType;
     u16  fun_ID;
@@ -90,7 +91,7 @@ typedef struct bpf_data_t {
     u32  gid_local;
     u32  gid_seria;
 } bpf_data;
-
+BPF_HASH(data_map, u64, bpf_data);
 
 BPF_HASH(ts_map, u64, u64);
 
@@ -373,12 +374,9 @@ int W_MapVMess2GID (struct pt_regs *ctx) {
         data.gid_seria = v_mess.writerGID.serial;
         data.seqNum = v_mess.sequenceNumber;
 
-        data.arg1 = trace_id.gid.systemId;
-        data.arg2 = trace_id.gid.localId;
-        data.arg3 = trace_id.gid.serial;
-        data.link = trace_id.seqNum;
 
-        data.ret = v_mess_p;
+
+
         events.perf_submit(ctx, &data, sizeof(data));
     #endif
     }
@@ -442,6 +440,221 @@ int Map_GID2Packet(struct pt_regs *ctx){ // (xp, &sender, message)
     events.perf_submit(ctx, &data, sizeof(data));
     return 0;
 }
+
+//
+//
+//
+//
+
+
+
+int nn_rsample_fragchain (struct pt_regs *ctx) { 
+
+        //u64 sc = PT_REGS_RC(ctx);
+        //u64 first;
+        u64 fragchain = PT_REGS_RC(ctx);
+
+       // bpf_probe_read(&first, sizeof(u64), (u64 *) sc);
+        //bpf_probe_read(&fragchain, sizeof(u64), (u64 *) first);
+    
+        bpf_data data = {};
+        data.recordType = DDS_RECORD;
+
+        data.ts  = bpf_ktime_get_ns();
+        data.pid = bpf_get_current_pid_tgid();
+        bpf_get_current_comm(&(data.comm), sizeof(data.comm));
+
+        data.fun_ID = 100;
+        data.fun_ret = 0;
+
+        data.link = fragchain;
+
+        events.perf_submit(ctx, &data, sizeof(data));
+
+    return 0;
+}
+
+int deliver_user_data  (struct pt_regs *ctx) { 
+
+        u64 fragchain = PT_REGS_PARM2(ctx);
+
+    
+        bpf_data data = {};
+        data.recordType = DDS_RECORD;
+
+        data.ts  = bpf_ktime_get_ns();
+        data.pid = bpf_get_current_pid_tgid();
+        bpf_get_current_comm(&(data.comm), sizeof(data.comm));
+
+        data.fun_ID = 101;
+        data.fun_ret = 0;
+
+        data.link = fragchain;
+
+        events.perf_submit(ctx, &data, sizeof(data));
+
+    return 0;
+}
+
+
+
+int extract_vmsg_from_data  (struct pt_regs *ctx) { 
+
+        u64 fragchain = PT_REGS_PARM4(ctx);
+
+    
+        bpf_data data = {};
+        data.recordType = DDS_RECORD;
+
+        data.ts  = bpf_ktime_get_ns();
+        data.pid = bpf_get_current_pid_tgid();
+        bpf_get_current_comm(&(data.comm), sizeof(data.comm));
+
+        data.fun_ID = 102;
+        data.fun_ret = 0;
+
+        data.link = fragchain;
+
+        events.perf_submit(ctx, &data, sizeof(data));
+
+    return 0;
+}
+
+int R_extract_vmsg_from_data  (struct pt_regs *ctx) { 
+
+
+        u64 payload = PT_REGS_RC(ctx);
+    
+
+
+        bpf_data data = {};
+        data.recordType = DDS_RECORD;
+
+    v_message v_mess;
+    bpf_probe_read(&v_mess, sizeof(v_message), (const void *)payload);
+    data.gid_sys = v_mess.writerGID.systemId;
+    data.gid_local = v_mess.writerGID.localId;
+    data.gid_seria = v_mess.writerGID.serial;
+    data.seqNum = v_mess.sequenceNumber;
+
+        data.ts  = bpf_ktime_get_ns();
+        data.pid = bpf_get_current_pid_tgid();
+        bpf_get_current_comm(&(data.comm), sizeof(data.comm));
+
+        data.fun_ID = 103;
+        data.fun_ret = 0;
+
+
+
+        events.perf_submit(ctx, &data, sizeof(data));
+
+    return 0;
+}
+
+int do_groupwrite  (struct pt_regs *ctx) { 
+
+
+    u64 arg = PT_REGS_PARM2(ctx);
+    u64 msg;
+    bpf_probe_read(&msg, sizeof(u64), (u64 *) arg);
+
+ 
+
+    bpf_data data = {};
+    data.recordType = DDS_RECORD;
+
+
+
+    data.ts  = bpf_ktime_get_ns();
+    data.pid = bpf_get_current_pid_tgid();
+    bpf_get_current_comm(&(data.comm), sizeof(data.comm));
+
+    v_message v_mess;
+    bpf_probe_read(&v_mess, sizeof(v_message), (const void *)msg);
+    data.gid_sys = v_mess.writerGID.systemId;
+    data.gid_local = v_mess.writerGID.localId;
+    data.gid_seria = v_mess.writerGID.serial;
+    data.seqNum = v_mess.sequenceNumber;
+
+    bpf_data recvmsg_data = {};
+    bpf_data* data_p = data_map.lookup(&data.pid);
+    if (data_p) {
+        recvmsg_data = *data_p;
+        data_map.delete(&data.pid);
+
+        recvmsg_data.gid_sys = v_mess.writerGID.systemId;
+        recvmsg_data.gid_local = v_mess.writerGID.localId;
+        recvmsg_data.gid_seria = v_mess.writerGID.serial;
+        recvmsg_data.seqNum = v_mess.sequenceNumber;
+        events.perf_submit(ctx, &recvmsg_data, sizeof(recvmsg_data));
+    }
+
+
+
+
+        data.fun_ID = 103;
+        data.fun_ret = 0;
+
+
+
+        //events.perf_submit(ctx, &data, sizeof(data));
+
+    return 0;
+}
+/* =======================================================================
+     This one process DDS DataReader Vmessage information
+   ======================================================================= */ 
+
+void _DataReader_samples_flush_copy(struct pt_regs *ctx) {
+
+    u64 pid = bpf_get_current_pid_tgid();
+    u64 reader = PT_REGS_PARM1(ctx);
+
+    ts_map.update(&pid, &reader);
+}
+
+void r_DataReader_samples_flush_copy(struct pt_regs *ctx) {
+
+    u64 pid = bpf_get_current_pid_tgid();
+    ts_map.delete(&pid);
+}
+
+int DDS_ReaderCommon_samples_flush_copy(struct pt_regs *ctx) { // 1:data (v_message = data - 64)
+    bpf_data data = {};
+
+    data.ts  = bpf_ktime_get_ns();
+    data.pid = bpf_get_current_pid_tgid();
+    bpf_get_current_comm(&(data.comm), sizeof(data.comm));
+
+    data.fun_ID = 105;
+
+    u64 pdata = PT_REGS_PARM1(ctx);
+    u64 pv_mess = pdata - 64;
+    v_message v_mess;
+    bpf_probe_read(&v_mess, sizeof(v_message), (const void *)pv_mess);
+    data.gid_sys = v_mess.writerGID.systemId;
+    data.gid_local = v_mess.writerGID.localId;
+    data.gid_seria = v_mess.writerGID.serial;
+    data.seqNum = v_mess.sequenceNumber;
+
+    u64 reader_p;
+    u64 pid = data.pid;
+    reader_p = (u64)ts_map.lookup(&pid);
+    if (reader_p) {
+        topic_info  t_info = {};
+        topic_info* t_info_p =  tName_map.lookup((u64 *)reader_p);
+        if (t_info_p) {
+            bpf_probe_read_str(data.tName, 64, t_info_p->name);
+
+        }     
+    }
+
+    events.perf_submit(ctx, &data, sizeof(data));
+
+    return 0;
+
+}
+
 
 /*************************************************************************************************/
 /**                                                                                             **/
@@ -588,12 +801,16 @@ int _sock_recv_ret(struct pt_regs *ctx)
         data = *data_p;
         data.fun_ID  = FID_RECV_MSG;
         data.fun_ret = 1;
+        end.delete(&pid);
     }
 
     data.ts = bpf_ktime_get_ns();
 
     if (data.arg1 || data.arg2 || data.arg3 || data.arg4) {
-        events.perf_submit(ctx, &data, sizeof(data));
+
+        data_map.update(&pid, &data);
+
+        //events.perf_submit(ctx, &data, sizeof(data));
     }
     return 0;
 }
@@ -619,6 +836,19 @@ bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym= "DDS_DataWriter_write", f
 bpf.attach_uprobe(name="%slibddskernel.so"%LIBPATH, sym="writerWrite", fn_name="W_MapVMess2GID")
 bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="rtps_write", fn_name="Map_GID2Packet")
 #bpf.attach_uretprobe(name="%slibddsi2.so"%LIBPATH, sym="rtps_write", fn_name="cleanup_v")
+
+
+
+
+#bpf.attach_uretprobe(name="%slibddsi2.so"%LIBPATH, sym="nn_rsample_fragchain", fn_name="nn_rsample_fragchain")
+#bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="deliver_user_data", fn_name="deliver_user_data")
+#bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="extract_vmsg_from_data", fn_name="extract_vmsg_from_data")
+#bpf.attach_uretprobe(name="%slibddsi2.so"%LIBPATH, sym="extract_vmsg_from_data", fn_name="R_extract_vmsg_from_data")
+bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="do_groupwrite", fn_name="do_groupwrite")
+
+bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_ReaderCommon_samples_flush_copy", fn_name="DDS_ReaderCommon_samples_flush_copy")
+bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="_DataReader_samples_flush_copy", fn_name="_DataReader_samples_flush_copy")
+bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="_DataReader_samples_flush_copy", fn_name="r_DataReader_samples_flush_copy")
 
 
 

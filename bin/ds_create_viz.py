@@ -26,10 +26,18 @@ def ds_create_viz(ds_logpath, nodes_record_dir):
         f.close()
 
         top_index = top_index + '\n        <div id="container%s" style="min-width: 310px; height: 400px; max-width: 90%%; margin: 0 auto"></div>' % nodes_record_dir[i]
+        #top_index = top_index + '\n        <script src="hl%s.js"></script>' % nodes_record_dir[i]
         top_index = top_index + '\n        <script src="report%s.js"></script>' % nodes_record_dir[i]
         top_index = top_index + '\n        <script src="outfitter%s.js"></script>' % nodes_record_dir[i]
         top_index = top_index + '\n        <script src="timeline%s.js"></script>' % nodes_record_dir[i]
-        top_index = top_index + '\n        <embed style="width:100%%; height:300px;" src="%s/swarms_report.txt">\n' % nodes_record_dir[i]
+
+        f = open ('%s/topic_lat_report_cnt.txt'%nodes_record_dir[i])
+        report_cnt = int(f.readline())
+        f.close()
+        top_index = top_index + '\n        <center>'
+        for cnt in range(report_cnt):
+            top_index = top_index + '\n        <embed style="width:19%%; height:250px;" src="%s/topic_lat_report%s.txt">' % (nodes_record_dir[i],str(cnt+1))
+        top_index = top_index + '\n        </center>' 
         replace_string = timeline.replace('container', 'container%s' % nodes_record_dir[i])
         replace_string = replace_string.replace('sofa_traces', 'sofa_traces%s' % nodes_record_dir[i])
         replace_string = replace_string.replace('outlier', 'outlier%s' % nodes_record_dir[i])
@@ -38,6 +46,7 @@ def ds_create_viz(ds_logpath, nodes_record_dir):
         f = open('timeline%s.js' % nodes_record_dir[i], 'w')
         f.write(replace_string)
         os.system('cp %s/outfitter.js ./outfitter%s.js' % (nodes_record_dir[i], nodes_record_dir[i]))
+        os.system('cp %s/hl.js ./hl%s.js' % (nodes_record_dir[i], nodes_record_dir[i]))
         os.system('cp %s/report.js ./report%s.js' % (nodes_record_dir[i], nodes_record_dir[i]))
         f.close()
         pass

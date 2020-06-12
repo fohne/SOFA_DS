@@ -559,7 +559,7 @@ int ddsi_conn_write(struct pt_regs *ctx){
 # 89 sendmsg (syscall)
 
 ##### Prober Variable Initialization
-LIBPATH="/home/mxmsl2/yu-hong/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/"
+LIBPATH="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/"
 
 ##### load BPF program
 bpf = BPF(text=prog)
