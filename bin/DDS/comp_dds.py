@@ -4,22 +4,33 @@ from bcc import BPF
 intrucode="""
 BPF_PERF_OUTPUT(events);
 
-#define DEBUG 
+//#define DEBUG 
 
 #define    DDS_RECORD     1
 #define   SOCK_RECORD     2
 
-#define FID_CREATE_TOPIC      1
-#define FID_CREATE_DDSWRITER  2
-#define FID_CREATE_DDSREADER  3
-#define FID_DDSWRITER_WRITE   4
-#define FID_WRITER_WRITE      5
-#define FID_RTPS_WRITE        6
 
-#define FID_SEND_MSG         21
-#define FID_IP_SEND          22
-#define FID_RECV_UDP         23
-#define FID_RECV_MSG         24
+#define FID_CREATE_TOPIC      40
+#define FID_CREATE_DDSWRITER  41
+#define FID_CREATE_DDSREADER  42
+#define FID_VWRITER_NEW       43
+
+#define FID_DDSWRITER_WRITE    1
+#define FID_WRITER_WRITE       2
+#define FID_RTPS_WRITE         3
+
+#define FID_DDSREADER_READ     6
+#define FID_DDSREADER_TAKE     7
+#define FID_RECV               8
+#define FID_GROUPWRITE         9
+
+#define FID_SOCK_SEND         20
+#define FID_SEND_MSG          21
+#define FID_IP_SEND           22
+
+#define FID_SOCK_RECV         30
+#define FID_RECV_UDP          31
+
 
 #ifdef asm_inline
     #undef asm_inline
@@ -67,14 +78,15 @@ BPF_HASH(traceId_map, u64, traceId);
 
 typedef struct bpf_data_t {
     u64  ts;
+    u64  sts;
     u64  ets;
     u64  pid;
-  //  char comm[TASK_COMM_LEN];
+//  char comm[TASK_COMM_LEN];
     char comm[32];
-    char tName[32];
+    char tName[20];
 
     u8   recordType;
-    u16  fun_ID;
+    u8    fun_ID;
     u8   fun_ret; 
 
     u64  arg1;
@@ -95,20 +107,73 @@ BPF_HASH(data_map, u64, bpf_data);
 
 BPF_HASH(ts_map, u64, u64);
 
-int Start_TS (struct pt_regs *ctx){
-    u64 pid = bpf_get_current_pid_tgid();
+static void Start_TS (u64 id) {
     u64  ts = bpf_ktime_get_ns();
+    u64 pid = bpf_get_current_pid_tgid();
+    id += pid;
+    ts_map.update(&id, &ts);
+}
 
-    ts_map.update(&pid, &ts);
+static u64 End_TS (u64 id, u64 * e_ts) {
+    *e_ts = bpf_ktime_get_ns();
 
+    u64 pid = bpf_get_current_pid_tgid();
+    id += pid;
+    u64* s_ts_p = ts_map.lookup(&id);
+    if (s_ts_p) {
+        u64 s_ts;
+
+        s_ts = *s_ts_p;
+        ts_map.delete(&id);
+        return s_ts;
+    }
     return 0;
 }
 
-int End_TS (struct pt_regs *ctx){
-    u64   pid = bpf_get_current_pid_tgid();
-    u64* s_ts = ts_map.lookup(&pid);
-    u64  e_ts = bpf_ktime_get_ns();
+static void get_topic_info (u64 id, bpf_data* data) {
 
+    topic_info* t_info_p = tName_map.lookup(&id);
+    if (t_info_p) {
+        bpf_probe_read_str(data->tName, 64, t_info_p->name);
+     }
+
+    traceId * trace_id_p = traceId_map.lookup(&id);
+    if (trace_id_p) {
+        traceId trace_id = *trace_id_p;
+        data->gid_sys = trace_id.gid.systemId;
+        data->gid_local = trace_id.gid.localId;
+        data->gid_seria = trace_id.gid.serial;
+        data->seqNum = trace_id.seqNum;
+    }
+}
+
+static void drop_topic_info (u64 id) {
+
+    topic_info* t_info_p = tName_map.lookup(&id);
+    if (t_info_p) {
+        tName_map.delete(&id);
+     }
+
+    traceId * trace_id_p = traceId_map.lookup(&id);
+    if (trace_id_p) {
+        traceId_map.delete(&id);
+    }
+}
+
+static void insert_bpf_data(u64 id, bpf_data* data) {
+    u64 pid = bpf_get_current_pid_tgid();
+    id += pid;
+    data_map.update(&id, data);
+}
+
+static bpf_data* get_bpf_data(u64 id) {
+    u64 pid = bpf_get_current_pid_tgid();
+    id += pid;
+
+    bpf_data* data_p = data_map.lookup(&id);
+    if (data_p) {
+        return data_p;
+    }
     return 0;
 }
 /*************************************************************************************************/
@@ -244,7 +309,7 @@ int W_MapVWriter2TopicName (struct pt_regs *ctx) { //ret: v_writer
         data.pid = pid;
         bpf_get_current_comm(&(data.comm), sizeof(data.comm));
 
-        data.fun_ID  = 20;
+        data.fun_ID  = FID_VWRITER_NEW;
         data.fun_ret = 1;
         bpf_probe_read_str(data.tName, 64, t_info_p->name);
         data.ret = v_writer;
@@ -311,9 +376,9 @@ int R_MapReader2TopicName(struct pt_regs *ctx) { // 2:topic; ret: reader_p
 /* =======================================================================
     Instrumented function:         DDS_DataWriter_write
    ======================================================================= */ 
-int DDSWrite_Start(struct pt_regs *ctx) {
+int uprobe_DDS_DataWriter_write(struct pt_regs *ctx) {
     u64           writer = PT_REGS_PARM1(ctx); // DDS_DataWriter
-
+    Start_TS(FID_DDSWRITER_WRITE);
 
 
     #ifdef DEBUG
@@ -328,9 +393,33 @@ int DDSWrite_Start(struct pt_regs *ctx) {
         data.fun_ID  = FID_DDSWRITER_WRITE;
         data.fun_ret = 0;
 
-
-       // events.perf_submit(ctx, &data, sizeof(data));
+        events.perf_submit(ctx, &data, sizeof(data));
     #endif
+    
+    return 0;
+}
+
+int uretprobe_DDS_DataWriter_write(struct pt_regs *ctx) {
+
+    u64 sts, ets;
+    sts = End_TS(FID_DDSWRITER_WRITE, &ets);
+   
+
+    bpf_data data = {};
+    data.recordType = DDS_RECORD;
+    data.ts  = bpf_ktime_get_ns();
+    data.pid = bpf_get_current_pid_tgid();
+    bpf_get_current_comm(&(data.comm), sizeof(data.comm));
+
+    data.fun_ID  = FID_DDSWRITER_WRITE;
+    data.fun_ret = 1;
+
+    data.sts = sts;
+    data.ets = ets;
+
+
+    events.perf_submit(ctx, &data, sizeof(data));
+
     
     return 0;
 }
@@ -338,25 +427,28 @@ int DDSWrite_Start(struct pt_regs *ctx) {
 /* =======================================================================
     Instrumented function:         writerWrite
    ======================================================================= */ 
-int W_MapVMess2GID (struct pt_regs *ctx) {
+int writerWrite (struct pt_regs *ctx) {
 
     u64         v_writer = PT_REGS_PARM1(ctx);
     topic_info* t_info_p = tName_map.lookup(&v_writer);
 
     if (t_info_p) {
+        u64 pid = bpf_get_current_pid_tgid();
         topic_info   topic = *t_info_p;
 
         u64        v_mess_p = PT_REGS_PARM3(ctx);
         v_message  v_mess;
         bpf_probe_read(&v_mess, sizeof(v_message), (const void *) v_mess_p);
         tName_map.update(&v_mess_p, &topic);
+        tName_map.update(&pid, &topic);
 
         traceId trace_id;
         bpf_probe_read(&trace_id.gid, sizeof(v_gid), (const void *) v_mess_p + offsetof(v_message, writerGID));
         bpf_probe_read(&trace_id.seqNum, sizeof(u32), (const void *) v_mess_p + offsetof(v_message, sequenceNumber));
         traceId_map.update(&v_mess_p, &trace_id);
+        traceId_map.update(&pid, &trace_id);
 
-    #ifdef DEBUG
+    #ifndef DEBUG
 
         bpf_data data = {};
         data.recordType = DDS_RECORD;
@@ -374,9 +466,6 @@ int W_MapVMess2GID (struct pt_regs *ctx) {
         data.gid_seria = v_mess.writerGID.serial;
         data.seqNum = v_mess.sequenceNumber;
 
-
-
-
         events.perf_submit(ctx, &data, sizeof(data));
     #endif
     }
@@ -386,7 +475,9 @@ int W_MapVMess2GID (struct pt_regs *ctx) {
 /* =======================================================================
     Instrumented function:         rtps_Write
    ======================================================================= */ 
-int Map_GID2Packet(struct pt_regs *ctx){ // (xp, &sender, message)
+int uprobe_rtps_Write(struct pt_regs *ctx){ // (xp, &sender, message)
+    Start_TS(FID_RTPS_WRITE);
+
     bpf_data data = {};
     u64       pid = bpf_get_current_pid_tgid();
 
@@ -407,10 +498,10 @@ int Map_GID2Packet(struct pt_regs *ctx){ // (xp, &sender, message)
     traceId * trace_id_p = traceId_map.lookup(&v_mess_p);
     if (trace_id_p) {
         traceId trace_id = *trace_id_p;
-        data.arg1 = trace_id.gid.systemId;
-        data.arg2 = trace_id.gid.localId;
-        data.arg3 = trace_id.gid.serial;
-        data.link = trace_id.seqNum;
+        data.gid_sys = trace_id.gid.systemId;
+        data.gid_local = trace_id.gid.localId;
+        data.gid_seria = trace_id.gid.serial;
+        data.seqNum = trace_id.seqNum;
         traceId_map.update(&pid, &trace_id);
         traceId_map.delete(&v_mess_p);
     }
@@ -423,189 +514,81 @@ int Map_GID2Packet(struct pt_regs *ctx){ // (xp, &sender, message)
     bpf_get_current_comm(&(data.comm), sizeof(data.comm));
     data.fun_ID = FID_RTPS_WRITE;
 
-    v_message v_mess;
-    bpf_probe_read(&v_mess, sizeof(v_message), (const void *) v_mess_p);
-
-    data.seqNum = v_mess.sequenceNumber;
-    data.gid_sys = v_mess.writerGID.systemId;
-    data.gid_local = v_mess.writerGID.localId;
-    data.gid_seria = v_mess.writerGID.serial;
-
-    v_gid gid2 ; 
-    bpf_probe_read(&gid2, sizeof(v_gid), (const void *) v_mess_p + offsetof(v_message, writerGID));
-    data.arg4 = gid.systemId;
-    data.arg5 = gid.localId;
-    data.arg6 = gid.serial;
-  
-    events.perf_submit(ctx, &data, sizeof(data));
+    insert_bpf_data(FID_RTPS_WRITE,&data);
+    //events.perf_submit(ctx, &data, sizeof(data));
     return 0;
 }
 
-//
-//
-//
-//
+int uretprobe_rtps_Write(struct pt_regs *ctx){ // (xp, &sender, message)
+    u64 sts, ets;
+    sts = End_TS(FID_RTPS_WRITE, &ets); 
 
+    bpf_data* data_p = get_bpf_data(FID_RTPS_WRITE);
+    if (data_p == 0) return 0;
 
-
-int nn_rsample_fragchain (struct pt_regs *ctx) { 
-
-        //u64 sc = PT_REGS_RC(ctx);
-        //u64 first;
-        u64 fragchain = PT_REGS_RC(ctx);
-
-       // bpf_probe_read(&first, sizeof(u64), (u64 *) sc);
-        //bpf_probe_read(&fragchain, sizeof(u64), (u64 *) first);
+    data_p->ets = ets;
+    data_p->sts = sts;
     
-        bpf_data data = {};
-        data.recordType = DDS_RECORD;
-
-        data.ts  = bpf_ktime_get_ns();
-        data.pid = bpf_get_current_pid_tgid();
-        bpf_get_current_comm(&(data.comm), sizeof(data.comm));
-
-        data.fun_ID = 100;
-        data.fun_ret = 0;
-
-        data.link = fragchain;
-
-        events.perf_submit(ctx, &data, sizeof(data));
-
-    return 0;
-}
-
-int deliver_user_data  (struct pt_regs *ctx) { 
-
-        u64 fragchain = PT_REGS_PARM2(ctx);
-
-    
-        bpf_data data = {};
-        data.recordType = DDS_RECORD;
-
-        data.ts  = bpf_ktime_get_ns();
-        data.pid = bpf_get_current_pid_tgid();
-        bpf_get_current_comm(&(data.comm), sizeof(data.comm));
-
-        data.fun_ID = 101;
-        data.fun_ret = 0;
-
-        data.link = fragchain;
-
-        events.perf_submit(ctx, &data, sizeof(data));
-
-    return 0;
-}
-
-
-
-int extract_vmsg_from_data  (struct pt_regs *ctx) { 
-
-        u64 fragchain = PT_REGS_PARM4(ctx);
-
-    
-        bpf_data data = {};
-        data.recordType = DDS_RECORD;
-
-        data.ts  = bpf_ktime_get_ns();
-        data.pid = bpf_get_current_pid_tgid();
-        bpf_get_current_comm(&(data.comm), sizeof(data.comm));
-
-        data.fun_ID = 102;
-        data.fun_ret = 0;
-
-        data.link = fragchain;
-
-        events.perf_submit(ctx, &data, sizeof(data));
-
-    return 0;
-}
-
-int R_extract_vmsg_from_data  (struct pt_regs *ctx) { 
-
-
-        u64 payload = PT_REGS_RC(ctx);
-    
-
-
-        bpf_data data = {};
-        data.recordType = DDS_RECORD;
-
-    v_message v_mess;
-    bpf_probe_read(&v_mess, sizeof(v_message), (const void *)payload);
-    data.gid_sys = v_mess.writerGID.systemId;
-    data.gid_local = v_mess.writerGID.localId;
-    data.gid_seria = v_mess.writerGID.serial;
-    data.seqNum = v_mess.sequenceNumber;
-
-        data.ts  = bpf_ktime_get_ns();
-        data.pid = bpf_get_current_pid_tgid();
-        bpf_get_current_comm(&(data.comm), sizeof(data.comm));
-
-        data.fun_ID = 103;
-        data.fun_ret = 0;
-
-
-
-        events.perf_submit(ctx, &data, sizeof(data));
-
+    if (data_p->gid_sys)
+    events.perf_submit(ctx, data_p, sizeof(*data_p));
     return 0;
 }
 
 int do_groupwrite  (struct pt_regs *ctx) { 
 
-
     u64 arg = PT_REGS_PARM2(ctx);
     u64 msg;
     bpf_probe_read(&msg, sizeof(u64), (u64 *) arg);
-
- 
-
-    bpf_data data = {};
-    data.recordType = DDS_RECORD;
-
-
-
-    data.ts  = bpf_ktime_get_ns();
-    data.pid = bpf_get_current_pid_tgid();
-    bpf_get_current_comm(&(data.comm), sizeof(data.comm));
+    u64 pid = bpf_get_current_pid_tgid();
 
     v_message v_mess;
-    bpf_probe_read(&v_mess, sizeof(v_message), (const void *)msg);
-    data.gid_sys = v_mess.writerGID.systemId;
-    data.gid_local = v_mess.writerGID.localId;
-    data.gid_seria = v_mess.writerGID.serial;
-    data.seqNum = v_mess.sequenceNumber;
+    // bpf_probe_read(&v_mess, sizeof(v_message), (const void *)msg);
+    bpf_probe_read(&v_mess.writerGID, sizeof(v_gid), (const void *)msg + offsetof(v_message, writerGID));
+    bpf_probe_read(&v_mess.sequenceNumber, sizeof(u32), (const void *)msg + offsetof(v_message, sequenceNumber));
 
-    bpf_data recvmsg_data = {};
-    bpf_data* data_p = data_map.lookup(&data.pid);
+    bpf_data* data_p = data_map.lookup(&pid);
     if (data_p) {
+        bpf_data recvmsg_data = {};
         recvmsg_data = *data_p;
-        data_map.delete(&data.pid);
+        data_map.delete(&pid);
 
         recvmsg_data.gid_sys = v_mess.writerGID.systemId;
         recvmsg_data.gid_local = v_mess.writerGID.localId;
         recvmsg_data.gid_seria = v_mess.writerGID.serial;
         recvmsg_data.seqNum = v_mess.sequenceNumber;
+
         events.perf_submit(ctx, &recvmsg_data, sizeof(recvmsg_data));
     }
 
+    #ifdef DEBUG
+        bpf_data data = {};
+        data.recordType = DDS_RECORD;
+        bpf_get_current_comm(&(data.comm), sizeof(data.comm));
+        data.ts  = bpf_ktime_get_ns();
+        data.pid = pid;
 
+        data.gid_sys = v_mess.writerGID.systemId;
+        data.gid_local = v_mess.writerGID.localId;
+        data.gid_seria = v_mess.writerGID.serial;
+        data.seqNum = v_mess.sequenceNumber;
 
-
-        data.fun_ID = 103;
+        data.fun_ID = FID_GROUPWRITE;
         data.fun_ret = 0;
 
-
-
-        //events.perf_submit(ctx, &data, sizeof(data));
+        events.perf_submit(ctx, &data, sizeof(data));
+    #endif
 
     return 0;
 }
+
 /* =======================================================================
      This one process DDS DataReader Vmessage information
    ======================================================================= */ 
+//DDS_DataReader_take first argument
 
-void _DataReader_samples_flush_copy(struct pt_regs *ctx) {
+//DDS_DataReader_read 
+
+void uprobe_DataReader_samples_flush_copy(struct pt_regs *ctx) {
 
     u64 pid = bpf_get_current_pid_tgid();
     u64 reader = PT_REGS_PARM1(ctx);
@@ -613,13 +596,13 @@ void _DataReader_samples_flush_copy(struct pt_regs *ctx) {
     ts_map.update(&pid, &reader);
 }
 
-void r_DataReader_samples_flush_copy(struct pt_regs *ctx) {
+void uretprobe_DataReader_samples_flush_copy(struct pt_regs *ctx) {
 
     u64 pid = bpf_get_current_pid_tgid();
     ts_map.delete(&pid);
 }
 
-int DDS_ReaderCommon_samples_flush_copy(struct pt_regs *ctx) { // 1:data (v_message = data - 64)
+int uprobe_DDS_ReaderCommon_samples_flush_copy(struct pt_regs *ctx) { // 1:data (v_message = data - 64)
     bpf_data data = {};
 
     data.ts  = bpf_ktime_get_ns();
@@ -662,8 +645,8 @@ int DDS_ReaderCommon_samples_flush_copy(struct pt_regs *ctx) { // 1:data (v_mess
 /**                                                                                             **/
 /*************************************************************************************************/
 
- //FID_SEND_MSG        
- //FID_IP_SEND 
+
+
 
 /* =======================================================================
     Instrumented function:         sock_sendmsg
@@ -671,16 +654,51 @@ int DDS_ReaderCommon_samples_flush_copy(struct pt_regs *ctx) { // 1:data (v_mess
 BPF_HASH(start, struct sock *, u64);
 BPF_HASH(end, u64, bpf_data);
 
-int _sock_send(struct pt_regs *ctx)
+int kprobe_sock_sendmsg(struct pt_regs *ctx)
 {
+    Start_TS(FID_SOCK_SEND);
+
     struct socket *sock;
     u64 ts;
-
     sock = (struct socket *)PT_REGS_PARM1(ctx); 
     struct sock *sk = sock->sk;
 
     ts = bpf_ktime_get_ns();
     start.update(&sk, &ts);
+
+
+    return 0;
+}
+
+int kretprobe_sock_sendmsg(struct pt_regs *ctx)
+{
+    u64 sts, ets;
+    sts = End_TS(FID_SOCK_SEND, &ets);
+
+    bpf_data * bpf_data_p = get_bpf_data(FID_SOCK_SEND);
+    if (bpf_data_p == 0) return 0;
+
+    bpf_data_p->fun_ID  = FID_SOCK_SEND;
+    bpf_data_p->sts = sts;
+    bpf_data_p->ets = ets;
+    bpf_data_p->recordType = SOCK_RECORD;
+    events.perf_submit(ctx, bpf_data_p, sizeof(bpf_data));
+
+/*
+    u64 id = FID_SOCK_SEND;
+    u64 pid = bpf_get_current_pid_tgid();
+    id += pid; 
+
+    bpf_data * bpf_data_p = data_map.lookup(&id);
+    if (bpf_data_p) {
+        bpf_data data = {};
+        data = *bpf_data_p;
+        data.sts = sts;
+        data.ets = bpf_ktime_get_ns();;
+        events.perf_submit(ctx, &data, sizeof(data));
+        data_map.delete(&id);
+    }
+*/
     return 0;
 }
 
@@ -705,8 +723,8 @@ int ip_send_skb (struct pt_regs *ctx)
 
     u64 *l4_ts = start.lookup(&sk);
     if (l4_ts) {
-        data.link = data.ts;
-        data.ts   = *l4_ts;
+        data.link = bpf_ktime_get_ns();
+        data.ret   = *l4_ts;
         start.delete(&sk);
     }
 
@@ -717,6 +735,12 @@ int ip_send_skb (struct pt_regs *ctx)
     data.arg2 = 0x00000000ffffffff & iph->daddr;
     data.arg1 = 0x00000000ffffffff & iph->saddr;
 
+    get_topic_info(data.pid, &data);
+    drop_topic_info(data.pid);
+
+    insert_bpf_data(FID_SOCK_SEND, &data);
+
+/*
     topic_info* t_info_p = tName_map.lookup(&data.pid);
     if (t_info_p) {
         bpf_probe_read_str(data.tName, 64, t_info_p->name);
@@ -734,15 +758,22 @@ int ip_send_skb (struct pt_regs *ctx)
         traceId_map.delete(&data.pid);
     }
 
+    u64 id =   FID_SOCK_SEND;
+    id += data.pid;
+    data_map.update(&id, &data);
+
     events.perf_submit(ctx, &data, sizeof(data));
+*/
+
 
     return 0;
 }
 
+
 /* =======================================================================
     Instrumented function:         __skb_recv_udp
    ======================================================================= */
-int skb_recv_udp_ret(struct pt_regs *ctx)
+int kretprobe_skb_recv_udp(struct pt_regs *ctx)
 {
     struct sk_buff *skb;
     struct udphdr * uh;
@@ -775,31 +806,45 @@ int skb_recv_udp_ret(struct pt_regs *ctx)
     data.arg1 = 0x00000000ffffffff & iph->saddr;
     end.update(&pid, &data);
 
+ 
     #ifdef DEBUG
         events.perf_submit(ctx, &data, sizeof(data));
     #endif
     return 0;
-
 
 }
 
 /* =======================================================================
     Instrumented function:         sock_recvmsg
    ======================================================================= */
-int _sock_recv_ret(struct pt_regs *ctx)
+
+int kprobe_sock_recvmsg(struct pt_regs *ctx)
 {
+
+    Start_TS(FID_SOCK_RECV);
+    return 0;
+}
+
+int kretprobe_sock_recvmsg(struct pt_regs *ctx)
+{
+    u64 sts, ets;
+    sts = End_TS(FID_SOCK_RECV, &ets);
+
     int len = PT_REGS_RC(ctx);
     if (len < 0) {
         return 0;
     }
 
     bpf_data  data = {};
+    data.ets = ets;
+    data.sts = sts;
+
     u64 pid = bpf_get_current_pid_tgid();
 
     bpf_data* data_p = end.lookup(&pid);
     if (data_p) {
         data = *data_p;
-        data.fun_ID  = FID_RECV_MSG;
+        data.fun_ID  = FID_SOCK_RECV;
         data.fun_ret = 1;
         end.delete(&pid);
     }
@@ -808,12 +853,15 @@ int _sock_recv_ret(struct pt_regs *ctx)
 
     if (data.arg1 || data.arg2 || data.arg3 || data.arg4) {
 
+
         data_map.update(&pid, &data);
 
         //events.perf_submit(ctx, &data, sizeof(data));
     }
     return 0;
 }
+
+
 """
 
 bpf = BPF(text=intrucode)
@@ -831,43 +879,45 @@ bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_Subscriber_create_
 
 
 # Write/Read Records
-bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym= "DDS_DataWriter_write", fn_name="DDSWrite_Start")
-#bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym= "DDS_DataWriter_write", fn_name="DDSWrite_End")
-bpf.attach_uprobe(name="%slibddskernel.so"%LIBPATH, sym="writerWrite", fn_name="W_MapVMess2GID")
-bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="rtps_write", fn_name="Map_GID2Packet")
-#bpf.attach_uretprobe(name="%slibddsi2.so"%LIBPATH, sym="rtps_write", fn_name="cleanup_v")
+bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym= "DDS_DataWriter_write", fn_name="uprobe_DDS_DataWriter_write")
+bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym= "DDS_DataWriter_write", fn_name="uretprobe_DDS_DataWriter_write")
+
+bpf.attach_uprobe(name="%slibddskernel.so"%LIBPATH, sym="writerWrite", fn_name="writerWrite")
+bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="rtps_write", fn_name="uprobe_rtps_Write")
+bpf.attach_uretprobe(name="%slibddsi2.so"%LIBPATH, sym="rtps_write", fn_name="uretprobe_rtps_Write")
 
 
 
 
-#bpf.attach_uretprobe(name="%slibddsi2.so"%LIBPATH, sym="nn_rsample_fragchain", fn_name="nn_rsample_fragchain")
-#bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="deliver_user_data", fn_name="deliver_user_data")
-#bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="extract_vmsg_from_data", fn_name="extract_vmsg_from_data")
-#bpf.attach_uretprobe(name="%slibddsi2.so"%LIBPATH, sym="extract_vmsg_from_data", fn_name="R_extract_vmsg_from_data")
+
 bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="do_groupwrite", fn_name="do_groupwrite")
+bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_ReaderCommon_samples_flush_copy", fn_name="uprobe_DDS_ReaderCommon_samples_flush_copy")
+bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="_DataReader_samples_flush_copy", fn_name="uprobe_DataReader_samples_flush_copy")
+bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="_DataReader_samples_flush_copy", fn_name="uretprobe_DataReader_samples_flush_copy")
 
-bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_ReaderCommon_samples_flush_copy", fn_name="DDS_ReaderCommon_samples_flush_copy")
-bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="_DataReader_samples_flush_copy", fn_name="_DataReader_samples_flush_copy")
-bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="_DataReader_samples_flush_copy", fn_name="r_DataReader_samples_flush_copy")
+#sys_enter_recvmsg
 
 
 
-bpf.attach_kprobe( event="sock_sendmsg", fn_name="_sock_send")
+bpf.attach_kprobe( event="sock_sendmsg", fn_name="kprobe_sock_sendmsg")
 bpf.attach_kprobe( event="ip_send_skb", fn_name="ip_send_skb")
+bpf.attach_kretprobe(event="sock_sendmsg", fn_name="kretprobe_sock_sendmsg")
 
-bpf.attach_kretprobe( event="__skb_recv_udp", fn_name="skb_recv_udp_ret") 
-bpf.attach_kretprobe(event="sock_recvmsg", fn_name="_sock_recv_ret")
+bpf.attach_kprobe( event="sock_recvmsg", fn_name="kprobe_sock_recvmsg")
+bpf.attach_kretprobe( event="__skb_recv_udp", fn_name="kretprobe_skb_recv_udp") 
+bpf.attach_kretprobe(event="sock_recvmsg", fn_name="kretprobe_sock_recvmsg")
 
 
 def print_event(cpu, data, size):
     event = bpf["events"].event(data)
     if 1:
-        print("%14d,%2d,%14d,%4d,%20s,%14s,%6d,%12d,%8d,%8d,%14d,%14d,%14d,%14d,%14d,%14d,%14d,%14s" % 
-             (event.ts, event.recordType, event.pid, event.fun_ID, event.tName, event.comm, 
-              event.seqNum, event.gid_sys, event.gid_local, event.gid_seria, 
-event.arg1, event.arg2, event.arg3, 
-event.arg4, event.arg5, event.arg6, event.link, 
-              hex(event.ret)))  
+        print("%14d,%14d,%14d,%2d,%14d,%4d,%20s,%14s,%6d,%12d,%8d,%8d,%14d,%14d,%14d,%14d,%14d,%14d,%14d,%14s" % 
+             (event.ts,event.sts,event.ets,
+              event.recordType, event.pid, event.fun_ID, event.tName, event.comm,
+              event.seqNum, event.gid_sys, event.gid_local, event.gid_seria,
+              event.arg1, event.arg2, event.arg3,
+              event.arg4, event.arg5, event.arg6,
+              event.link, event.ret))
     else:
         pass
 

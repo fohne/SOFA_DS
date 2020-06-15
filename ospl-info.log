@@ -1,0 +1,1287 @@
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:57:43+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 1276343624 from [1,2147483647]
+Node        : manjaro
+Process     : pong <6931>
+Thread      : spliced 7f7a3986b700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591937863.001585084/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:57:43+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <6931>
+Thread      : spliced 7f7a3986b700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591937863.002152707/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:57:43+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <6931>
+Thread      : spliced 7f7a3986b700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591937863.003333548/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:57:43+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <6931>
+Thread      : ddsi2 7f7a38b35700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591937863.066560063/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:57:43+0800
+Description : The durability service can be identified by ID: 1276343624
+Node        : manjaro
+Process     : pong <6931>
+Thread      : durability 7f7a38d02700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591937863.399798552/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:57:48+0800
+Description : Termination request (signal 2) received from PID 6931 (self), UID 1000
+Node        : manjaro
+Process     : pong <6931>
+Thread      : signalHandler 7f7a3950b700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591937868.995763665/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:59:26+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 911780984 from [1,2147483647]
+Node        : manjaro
+Process     : pong <7024>
+Thread      : spliced 7f134e504700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591937966.333242685/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:59:26+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <7024>
+Thread      : spliced 7f134e504700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591937966.334010594/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:59:26+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <7024>
+Thread      : spliced 7f134e504700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591937966.335485753/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:59:26+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <7024>
+Thread      : ddsi2 7f134d7ce700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591937966.427393426/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:59:26+0800
+Description : The durability service can be identified by ID: 911780984
+Node        : manjaro
+Process     : pong <7024>
+Thread      : durability 7f134d99b700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591937966.787002348/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T12:59:32+0800
+Description : Termination request (signal 2) received from PID 7024 (self), UID 1000
+Node        : manjaro
+Process     : pong <7024>
+Thread      : signalHandler 7f134e1a4700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591937972.241865926/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:10:30+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 124911537 from [1,2147483647]
+Node        : manjaro
+Process     : pong <7227>
+Thread      : spliced 7f34b05b0700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591938630.116660379/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:10:30+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <7227>
+Thread      : spliced 7f34b05b0700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591938630.117183350/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:10:30+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <7227>
+Thread      : spliced 7f34b05b0700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591938630.118485457/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:10:30+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <7227>
+Thread      : ddsi2 7f34af87a700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591938630.192625773/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:10:30+0800
+Description : The durability service can be identified by ID: 124911537
+Node        : manjaro
+Process     : pong <7227>
+Thread      : durability 7f34afa47700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591938630.523028929/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:10:36+0800
+Description : Termination request (signal 2) received from PID 7227 (self), UID 1000
+Node        : manjaro
+Process     : pong <7227>
+Thread      : signalHandler 7f34b0250700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591938636.645221274/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:26:57+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 700490428 from [1,2147483647]
+Node        : manjaro
+Process     : pong <7441>
+Thread      : spliced 7fcdfedb3700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591939617.262042896/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:26:57+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <7441>
+Thread      : spliced 7fcdfedb3700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591939617.262561049/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:26:57+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <7441>
+Thread      : spliced 7fcdfedb3700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591939617.263817315/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:26:57+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <7441>
+Thread      : ddsi2 7fcdfe07d700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591939617.342366966/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:26:57+0800
+Description : The durability service can be identified by ID: 700490428
+Node        : manjaro
+Process     : pong <7441>
+Thread      : durability 7fcdfe24a700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591939617.684666160/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:27:03+0800
+Description : Termination request (signal 2) received from PID 7441 (self), UID 1000
+Node        : manjaro
+Process     : pong <7441>
+Thread      : signalHandler 7fcdfea53700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591939623.793681299/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:41:09+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 1813243370 from [1,2147483647]
+Node        : manjaro
+Process     : pong <7635>
+Thread      : spliced 7f828e232700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591940469.145407011/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:41:09+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <7635>
+Thread      : spliced 7f828e232700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591940469.145964739/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:41:09+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <7635>
+Thread      : spliced 7f828e232700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591940469.147270428/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:41:09+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <7635>
+Thread      : ddsi2 7f828d4fc700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591940469.216115603/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:41:09+0800
+Description : The durability service can be identified by ID: 1813243370
+Node        : manjaro
+Process     : pong <7635>
+Thread      : durability 7f828d6c9700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591940469.575175926/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T13:41:14+0800
+Description : Termination request (signal 2) received from PID 7635 (self), UID 1000
+Node        : manjaro
+Process     : pong <7635>
+Thread      : signalHandler 7f828ded2700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591940474.640244113/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:03:24+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 1123830608 from [1,2147483647]
+Node        : manjaro
+Process     : pong <7878>
+Thread      : spliced 7f3303c08700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591941804.002835530/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:03:24+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <7878>
+Thread      : spliced 7f3303c08700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591941804.003416716/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:03:24+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <7878>
+Thread      : spliced 7f3303c08700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591941804.004660167/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:03:24+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <7878>
+Thread      : ddsi2 7f3302ed2700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591941804.079910560/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:03:24+0800
+Description : The durability service can be identified by ID: 1123830608
+Node        : manjaro
+Process     : pong <7878>
+Thread      : durability 7f330309f700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591941804.475838078/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:03:30+0800
+Description : Termination request (signal 2) received from PID 7878 (self), UID 1000
+Node        : manjaro
+Process     : pong <7878>
+Thread      : signalHandler 7f33038a8700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591941810.353624163/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:05:55+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 260379590 from [1,2147483647]
+Node        : manjaro
+Process     : pong <8023>
+Thread      : spliced 7fa8a311c700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591941955.424559538/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:05:55+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <8023>
+Thread      : spliced 7fa8a311c700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591941955.425132157/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:05:55+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <8023>
+Thread      : spliced 7fa8a311c700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591941955.426420351/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:05:55+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <8023>
+Thread      : ddsi2 7fa8a23e6700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591941955.495731327/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:05:55+0800
+Description : The durability service can be identified by ID: 260379590
+Node        : manjaro
+Process     : pong <8023>
+Thread      : durability 7fa8a25b3700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591941955.923869996/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:06:01+0800
+Description : Termination request (signal 2) received from PID 8023 (self), UID 1000
+Node        : manjaro
+Process     : pong <8023>
+Thread      : signalHandler 7fa8a2dbc700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591941961.336332387/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:08:44+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 435156658 from [1,2147483647]
+Node        : manjaro
+Process     : pong <8171>
+Thread      : spliced 7fc5b1364700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591942124.152502273/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:08:44+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <8171>
+Thread      : spliced 7fc5b1364700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591942124.153235188/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:08:44+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <8171>
+Thread      : spliced 7fc5b1364700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591942124.154579540/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:08:44+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <8171>
+Thread      : ddsi2 7fc5b062e700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591942124.242441648/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:08:44+0800
+Description : The durability service can be identified by ID: 435156658
+Node        : manjaro
+Process     : pong <8171>
+Thread      : durability 7fc5b07fb700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591942124.613367436/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:08:51+0800
+Description : Termination request (signal 2) received from PID 8171 (self), UID 1000
+Node        : manjaro
+Process     : pong <8171>
+Thread      : signalHandler 7fc5b1004700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591942131.076652456/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:10:44+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 724289977 from [1,2147483647]
+Node        : manjaro
+Process     : pong <8317>
+Thread      : spliced 7fa2aa674700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591942244.817720956/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:10:44+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <8317>
+Thread      : spliced 7fa2aa674700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591942244.818228428/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:10:44+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <8317>
+Thread      : spliced 7fa2aa674700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591942244.819419897/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:10:44+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <8317>
+Thread      : ddsi2 7fa2a993e700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591942244.884452761/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:10:45+0800
+Description : The durability service can be identified by ID: 724289977
+Node        : manjaro
+Process     : pong <8317>
+Thread      : durability 7fa2a9b0b700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591942245.214144042/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:10:52+0800
+Description : Termination request (signal 2) received from PID 8317 (self), UID 1000
+Node        : manjaro
+Process     : pong <8317>
+Thread      : signalHandler 7fa2aa314700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591942252.076684534/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:14:01+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 315244280 from [1,2147483647]
+Node        : manjaro
+Process     : pong <8469>
+Thread      : spliced 7f881c79d700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591942441.751930310/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:14:01+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <8469>
+Thread      : spliced 7f881c79d700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591942441.752483440/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:14:01+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <8469>
+Thread      : spliced 7f881c79d700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591942441.753596490/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:14:01+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <8469>
+Thread      : ddsi2 7f8817a5d700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591942441.833808718/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:14:02+0800
+Description : The durability service can be identified by ID: 315244280
+Node        : manjaro
+Process     : pong <8469>
+Thread      : durability 7f8817c2a700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591942442.174193594/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:14:07+0800
+Description : Termination request (signal 2) received from PID 8469 (self), UID 1000
+Node        : manjaro
+Process     : pong <8469>
+Thread      : signalHandler 7f881c43d700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591942447.525700880/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:18:57+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 1701113558 from [1,2147483647]
+Node        : manjaro
+Process     : pong <8622>
+Thread      : spliced 7f9ca771b700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591942737.662754458/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:18:57+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <8622>
+Thread      : spliced 7f9ca771b700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591942737.663519117/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:18:57+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <8622>
+Thread      : spliced 7f9ca771b700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591942737.665070801/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:18:57+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <8622>
+Thread      : ddsi2 7f9ca69e5700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591942737.753373589/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:18:58+0800
+Description : The durability service can be identified by ID: 1701113558
+Node        : manjaro
+Process     : pong <8622>
+Thread      : durability 7f9ca6bb2700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591942738.097642733/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:19:05+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'durability' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <8622>
+Thread      : conflictResolver 7f9ca664e700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591942745.386568585/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:19:10+0800
+Description : Termination request (signal 2) received from PID 8622 (self), UID 1000
+Node        : manjaro
+Process     : pong <8622>
+Thread      : signalHandler 7f9ca73bb700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591942750.173723231/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:42:16+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 752210604 from [1,2147483647]
+Node        : manjaro
+Process     : pong <9549>
+Thread      : spliced 7f53bee07700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591944136.909843870/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:42:16+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <9549>
+Thread      : spliced 7f53bee07700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591944136.910509968/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:42:16+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <9549>
+Thread      : spliced 7f53bee07700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591944136.941571206/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:42:17+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <9549>
+Thread      : ddsi2 7f53be0d1700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591944137.039304918/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:42:17+0800
+Description : The durability service can be identified by ID: 752210604
+Node        : manjaro
+Process     : pong <9549>
+Thread      : durability 7f53be29e700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591944137.428638204/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:42:23+0800
+Description : Termination request (signal 2) received from PID 9549 (self), UID 1000
+Node        : manjaro
+Process     : pong <9549>
+Thread      : signalHandler 7f53beaa7700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591944143.608407585/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:47:46+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 1919994567 from [1,2147483647]
+Node        : manjaro
+Process     : pong <9705>
+Thread      : spliced 7fa4088f7700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591944466.726850421/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:47:46+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <9705>
+Thread      : spliced 7fa4088f7700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591944466.727508845/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:47:46+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <9705>
+Thread      : spliced 7fa4088f7700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591944466.728623022/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:47:46+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <9705>
+Thread      : ddsi2 7fa3f3be0700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591944466.828748422/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:47:47+0800
+Description : The durability service can be identified by ID: 1919994567
+Node        : manjaro
+Process     : pong <9705>
+Thread      : durability 7fa3f3dad700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591944467.209183517/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:47:57+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'durability' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <9705>
+Thread      : conflictResolver 7fa3f389e700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591944477.872293587/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:49:43+0800
+Description : Missed heartbeat for node 649735318. (DCPSPublication is complete)
+Node        : manjaro
+Process     : pong <9705>
+Thread      : OSPL Garbage Collector 7fa3f3f7e700
+Internals   : 6.9.190925OSS///v_spliced/v_spliced.c/2060/769/1591944583.167983597/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:57:41+0800
+Description : Missed heartbeat for node 2071659586. (DCPSPublication is complete)
+Node        : manjaro
+Process     : pong <9705>
+Thread      : OSPL Garbage Collector 7fa3f3f7e700
+Internals   : 6.9.190925OSS///v_spliced/v_spliced.c/2060/769/1591945061.350977306/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T14:57:43+0800
+Description : Termination request (signal 2) received from PID 9705 (self), UID 1000
+Node        : manjaro
+Process     : pong <9705>
+Thread      : signalHandler 7fa408597700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591945063.316012318/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:01:44+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 353189663 from [1,2147483647]
+Node        : manjaro
+Process     : pong <10114>
+Thread      : spliced 7f19cdd44700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591945304.410767985/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:01:44+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <10114>
+Thread      : spliced 7f19cdd44700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591945304.411414461/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:01:44+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10114>
+Thread      : spliced 7f19cdd44700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591945304.412644652/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:01:44+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10114>
+Thread      : ddsi2 7f19cd00e700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591945304.512827443/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:01:44+0800
+Description : The durability service can be identified by ID: 353189663
+Node        : manjaro
+Process     : pong <10114>
+Thread      : durability 7f19cd1db700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591945304.923990014/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:01:56+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'durability' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10114>
+Thread      : conflictResolver 7f19ccc77700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591945316.217408398/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:03:41+0800
+Description : Missed heartbeat for node 1193953229. (DCPSPublication is complete)
+Node        : manjaro
+Process     : pong <10114>
+Thread      : OSPL Garbage Collector 7f19cd3bd700
+Internals   : 6.9.190925OSS///v_spliced/v_spliced.c/2060/769/1591945421.271556905/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:14:09+0800
+Description : Termination request (signal 2) received from PID 10114 (self), UID 1000
+Node        : manjaro
+Process     : pong <10114>
+Thread      : signalHandler 7f19cd9e4700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591946049.525322426/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:14:13+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 888967857 from [1,2147483647]
+Node        : manjaro
+Process     : pong <10541>
+Thread      : spliced 7f9eb61cb700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591946053.495322358/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:14:13+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <10541>
+Thread      : spliced 7f9eb61cb700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591946053.495960721/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:14:13+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10541>
+Thread      : spliced 7f9eb61cb700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591946053.497185473/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:14:13+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10541>
+Thread      : ddsi2 7f9eb5495700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591946053.617801388/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:14:13+0800
+Description : The durability service can be identified by ID: 888967857
+Node        : manjaro
+Process     : pong <10541>
+Thread      : durability 7f9eb5662700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591946053.957708826/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:14:20+0800
+Description : Termination request (signal 2) received from PID 10541 (self), UID 1000
+Node        : manjaro
+Process     : pong <10541>
+Thread      : signalHandler 7f9eb5e6b700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591946060.145061816/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:17:44+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 994759201 from [1,2147483647]
+Node        : manjaro
+Process     : pong <10687>
+Thread      : spliced 7fed67bc2700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591946264.996214254/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:17:44+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <10687>
+Thread      : spliced 7fed67bc2700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591946264.996862891/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:17:44+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10687>
+Thread      : spliced 7fed67bc2700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591946264.997993535/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:17:45+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10687>
+Thread      : ddsi2 7fed66e8c700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591946265.097997621/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:17:45+0800
+Description : The durability service can be identified by ID: 994759201
+Node        : manjaro
+Process     : pong <10687>
+Thread      : durability 7fed67059700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591946265.472401470/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:17:54+0800
+Description : Termination request (signal 2) received from PID 10687 (self), UID 1000
+Node        : manjaro
+Process     : pong <10687>
+Thread      : signalHandler 7fed67862700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591946274.225329351/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:23:08+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 497716467 from [1,2147483647]
+Node        : manjaro
+Process     : pong <10855>
+Thread      : spliced 7f22087b3700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591946588.171871695/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:23:08+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <10855>
+Thread      : spliced 7f22087b3700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591946588.172636413/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:23:08+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10855>
+Thread      : spliced 7f22087b3700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591946588.173924600/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:23:08+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10855>
+Thread      : ddsi2 7f2203a5d700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591946588.268524792/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:23:08+0800
+Description : The durability service can be identified by ID: 497716467
+Node        : manjaro
+Process     : pong <10855>
+Thread      : durability 7f2203c2a700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591946588.616064452/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:23:18+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'durability' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10855>
+Thread      : conflictResolver 7f22036d7700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591946598.977441327/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:23:57+0800
+Description : Missed heartbeat for node 722793513. (DCPSPublication is complete)
+Node        : manjaro
+Process     : pong <10855>
+Thread      : OSPL Garbage Collector 7f2203dfb700
+Internals   : 6.9.190925OSS///v_spliced/v_spliced.c/2060/769/1591946637.169023447/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:28:32+0800
+Description : Termination request (signal 2) received from PID 10855 (self), UID 1000
+Node        : manjaro
+Process     : pong <10855>
+Thread      : signalHandler 7f2208453700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591946912.592395815/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:28:34+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 240598664 from [1,2147483647]
+Node        : manjaro
+Process     : pong <10994>
+Thread      : spliced 7f66cdef4700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591946914.914047320/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:28:34+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : pong <10994>
+Thread      : spliced 7f66cdef4700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591946914.914670156/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:28:34+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10994>
+Thread      : spliced 7f66cdef4700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591946914.915796182/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:28:35+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10994>
+Thread      : ddsi2 7f66cd1be700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591946915.010569823/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:28:35+0800
+Description : The durability service can be identified by ID: 240598664
+Node        : manjaro
+Process     : pong <10994>
+Thread      : durability 7f66cd38b700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591946915.386796417/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:28:52+0800
+Description : Missed heartbeat for node 1806571899. (DCPSPublication is complete)
+Node        : manjaro
+Process     : pong <10994>
+Thread      : OSPL Garbage Collector 7f66cd56d700
+Internals   : 6.9.190925OSS///v_spliced/v_spliced.c/2060/769/1591946932.038963250/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T15:28:52+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'durability' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : pong <10994>
+Thread      : conflictResolver 7f66cce27700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591946932.061397967/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T16:00:50+0800
+Description : Termination request (signal 2) received from PID 10994 (self), UID 1000
+Node        : manjaro
+Process     : pong <10994>
+Thread      : signalHandler 7f66cdb94700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591948850.064398508/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T16:00:58+0800
+Description : ---------------------------------------------------------------
+              -- The service is using the following configuration settings --
+              ---------------------------------------------------------------
+              Domain (id)          : ospl_sp_ddsi (0)
+              Storage              : 0 Kbytes
+              Storage threshold    : 1024 Kbytes
+              Storage address      : Not available
+              Locking              : default
+              Memory mode          : Heap memory
+              Builtin topics       : true
+              Priority inheritance : false
+              SystemId             : 1462209991 from [1,2147483647]
+Node        : manjaro
+Process     : ping <11387>
+Thread      : spliced 7f70a0e08700
+Internals   : 6.9.190925OSS///The OpenSplice domain service/u_domain.c/785/0/1591948858.767860157/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T16:00:58+0800
+Description : Service cmsoap disabled
+Node        : manjaro
+Process     : ping <11387>
+Thread      : spliced 7f70a0e08700
+Internals   : 6.9.190925OSS///OpenSplice domain service/sr_componentInfo.c/446/0/1591948858.768484341/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T16:00:58+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'splicedaemon' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : ping <11387>
+Thread      : spliced 7f70a0e08700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591948858.769620151/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T16:00:58+0800
+Description : ++++++++++++++++++++++++++++++++++++++++++++++++
+              ++ The service 'ddsi2' is now operational. 
+              ++++++++++++++++++++++++++++++++++++++++++++++++
+Node        : manjaro
+Process     : ping <11387>
+Thread      : ddsi2 7f7073fff700
+Internals   : 6.9.190925OSS///v_serviceChangeState/v_service.c/262/0/1591948858.868968155/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T16:00:59+0800
+Description : The durability service can be identified by ID: 1462209991
+Node        : manjaro
+Process     : ping <11387>
+Thread      : durability 7f70a029f700
+Internals   : 6.9.190925OSS///DurabilityService/d_durability.c/554/0/1591948859.272270977/0
+========================================================================================
+Report      : INFO
+Date        : 2020-06-12T16:01:03+0800
+Description : Termination request (signal 2) received from PID 11387 (self), UID 1000
+Node        : manjaro
+Process     : ping <11387>
+Thread      : signalHandler 7f70a0aa8700
+Internals   : 6.9.190925OSS///signalHandlerThread/os_signalHandler.c/627/0/1591948863.609590764/0
