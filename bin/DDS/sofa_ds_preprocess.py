@@ -27,15 +27,45 @@ def cor_tab_init():
     cor_tab = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
     return cor_tab
 
-def formatted_lines_to_trace(data_in, index_tab, name_info="empty"):
+def ds_trace_preprocess_functions_init():
+    null_functions = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    return null_functions
+
+def get_socket_src_addr(ds_trace):
+    return ds_traces[13] + ':' + str(ds_traces[15])
+
+def get_socket_des_addr(ds_trace):
+    return ds_traces[14] + ':' + str(ds_traces[16])
+
+def create_socket_info(ds_trace):
+    return '[' + ds_traces[13] + ':' + str(ds_traces[15]) + " --> " +  ds_traces[14] + ':' + str(ds_traces[16]) + ']'
+
+def ds_traces2sofa_traces(ds_traces, index_table, functions = ds_trace_preprocess_functions_init()):
+    from sofa_preprocess import trace_init
+    sofa_traces = []
+
+    for ds_trace in ds_traces:
+        sofa_trace = trace_init()
+
+        for i in range(len(sofa_trace)):
+            if index_table[i] != -1:
+                sofa_trace[i] = ds_trace[index_table[i]]
+            elif functions[i] != 0:
+                sofa_trace[i] = functions[i](ds_trace)
+
+        sofa_traces.append(sofa_trace)
+
+    return sofa_traces
+
+def formatted_lines_to_trace_v2(data_in, index_tab, name_info="empty"):
     from sofa_preprocess import trace_init
     result = []
 
     for line in data_in:
         trace = trace_init()
 ####### Create name information
-        pkt_src = line[7] + ':' + str(line[8])
-        pkt_dst = line[9] + ':' + str(line[10])
+        pkt_src = line[13] + ':' + str(line[15])
+        pkt_dst = line[14] + ':' + str(line[16])
         name = '[' + pkt_src + " --> " + pkt_dst + ']'
 
         trace = [
@@ -57,14 +87,36 @@ def formatted_lines_to_trace(data_in, index_tab, name_info="empty"):
         result.append(trace)
     return result
 
-# SOFA trace
-# 0: timestamp   # 3: deviceId   # 6: bandwidth   # 9:  pid       # 12: category
-# 1: event       # 4: copyKind   # 7: pkt_src     # 10: tid
-# 2: duration    # 5: payload    # 8: pkt_dst     # 11: name
-    SOFA_trace_lists = []
+def dds_toSOFA_trace_v2(data_in, index_tab, name_info="empty"):
+    from sofa_preprocess import trace_init
+    result = []
 
-    ds_trace_field = ['timestamp', 'comm', 'topic_name', 'tgid','tid','fid','topic_p','writer_p','data_p','winfo_p', 
-                      'v_msg', 'gid_sys', 'gid_local', 'gid_seria', 'seq']
+    for line in data_in:
+        trace = trace_init()
+####### Create name information
+        topic_name = line[7]
+        gid = str(line[10])+'.'+str(line[11])+'.'+str(line[12])
+        seq = line[9]
+        name = '[' + topic_name + "]" + gid + ':' + str(seq)
+
+        trace = [
+                  line[index_tab[ 0]] if index_tab[ 0] != -1 else trace[ 0],
+                  line[index_tab[ 1]] if index_tab[ 1] != -1 else trace[ 1],
+                  line[index_tab[ 2]] if index_tab[ 2] != -1 else trace[ 2],
+                  line[index_tab[ 3]] if index_tab[ 3] != -1 else trace[ 3],
+                  line[index_tab[ 4]] if index_tab[ 4] != -1 else trace[ 4],
+                  line[index_tab[ 5]] if index_tab[ 5] != -1 else trace[ 5],
+                  line[index_tab[ 6]] if index_tab[ 6] != -1 else trace[ 6],
+                  line[index_tab[ 7]] if index_tab[ 7] != -1 else trace[ 7], 
+                  line[index_tab[ 8]] if index_tab[ 8] != -1 else trace[ 8],
+                  line[index_tab[ 9]] if index_tab[ 9] != -1 else trace[ 9],
+                  line[index_tab[10]] if index_tab[10] != -1 else trace[10],
+                  name                if index_tab[11] != -1 else name_info,
+                  line[index_tab[12]] if index_tab[12] != -1 else trace[12]
+                ]
+
+        result.append(trace)
+    return result
 
 def dds_toSOFA_trace(data_in, index_tab, name_info="empty"):
     from sofa_preprocess import trace_init
@@ -120,51 +172,62 @@ def trace_calculate_bandwidth(data_in):
 
     return result
 
-def ds_do_preprocess(cfg, logdir, pid):	
+def trace_calculate_bandwidth_v2(data_in):
+    from sofa_preprocess import trace_init
+    result = list()
+    total_payload = 0
+    first_ts = 0
+    curr_ts = 0
+    i = 1 
+    
+    for line in data_in:
+        trace = trace_init()
+
+        curr_ts = line[1]
+        if not first_ts:
+            first_ts = line[1]
+            curr_ts = line[1] * 2
+        
+        total_payload += line[17]
+        trace[6] = total_payload / (curr_ts - first_ts)        
+        trace[0] = line[1]
+        result.append(trace)
+
+    return result
+
+def ds_dds_preprocess(cfg, logdir, pid):	
     from sofa_preprocess import sofa_fieldnames
     from sofa_preprocess import list_to_csv_and_traces
-    
-    ds_trace_field = ['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer', 
-                      'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time']
 
-    tmp_ds_df = pd.read_csv('%s/ds_trace'%logdir, sep=',\s+', delimiter=',', encoding="utf-8",
-                            skipinitialspace=False, header=0)
-    tmp_ds_df = tmp_ds_df.dropna()
-    ds_df = pd.DataFrame(columns=ds_trace_field)
-    for i in range(len(tmp_ds_df.columns)):
-        if i < 4:
-            series = tmp_ds_df.iloc[:,i]
+    trace_field = ['timestamp', 'start_ts', 'end_ts', 'record_type', 'tgid', 'tid', 'fun_ID', 'topic_name', 'comm', 'seq', 
+                   'gid_sys', 'gid_local', 'gid_seria', 'arg1', 'arg2', 'arg3', 'arg4', 'arg5', 'arg6', 'link', 'ret']
+    ds_df = pd.DataFrame(columns=trace_field)
+
+    tmp_df = pd.read_csv('%s/ds_dds_trace'%logdir, sep=',\s+', delimiter=',', encoding="utf-8", skipinitialspace=False, header=0)
+    tmp_df = tmp_df.dropna()
+
+    for i in range(len(tmp_df.columns)):
+        if i < 5:
+            series = tmp_df.iloc[:,i]
+
             ds_df.iloc[:,i] = series
+            ds_df.iloc[:,i] = ds_df.iloc[:,i].astype('int64')
         else:
-            series = tmp_ds_df.iloc[:,i]
+            series = tmp_df.iloc[:,i]
             ds_df.iloc[:,i+1] = series
-            ds_df.iloc[:,i+1] = ds_df.iloc[:,i+1].astype('int64')
-
+            if i != 6 and i != 7:
+                ds_df.iloc[:,i+1] = ds_df.iloc[:,i+1].astype('int64')
 
     ds_df['tid']  = ds_df['tgid'].astype('int64').apply( lambda x: x & 0xFFFFFFFF )
-
     ds_df['tgid'] = ds_df['tgid'].apply( lambda x: (int(x) >> 32) & 0xFFFFFFFF )
 
-    ds_df['s_ip'] = ds_df['s_ip'].apply( lambda x: str( x        & 0x000000FF) + "."
-                                                 + str((x >>  8) & 0x000000FF) + "."
-                                                 + str((x >> 16) & 0x000000FF) + "."
-                                                 + str((x >> 24) & 0x000000FF) 
-                                       )
-    ds_df['d_ip'] = ds_df['d_ip'].apply( lambda x: str( x        & 0x000000FF) + "."
-                                                 + str((x >>  8) & 0x000000FF) + "."
-                                                 + str((x >> 16) & 0x000000FF) + "."
-                                                 + str((x >> 24) & 0x000000FF) 
-                                       )
+    filter = ds_df['tgid'] == int(pid)
+    ds_df  = ds_df[filter]
+    ds_df.to_csv(logdir + 'ds_trace_%s'%pid, mode='w', index=False, float_format='%.9f')
 
-    ds_df['s_port'] = ds_df.apply(lambda x: (ds_df['s_port'].values >> 8) & 0x00FF | (ds_df['s_port'].values << 8) & 0xFF00)
 
-    ds_df['d_port'] = ds_df.apply(lambda x: (ds_df['d_port'].values >> 8) & 0x00FF | (ds_df['d_port'].values << 8) & 0xFF00)
-
-### Normalize traces time
-    ds_df.sort_values('timestamp')
-    #remove_noise = ds_df.values.tolist()
-    #for i in len(remove_noise):
-     #   remove_noise[i]
+### Normalize SOFA traces timeline
+    ds_df.sort_values('start_ts')
     bpf_timebase_uptime = 0 
     bpf_timebase_unix = 0 
     
@@ -173,136 +236,209 @@ def ds_do_preprocess(cfg, logdir, pid):
         bpf_timebase_unix = float(lines[-1].split(',')[0])
         bpf_timebase_uptime = float(lines[-1].split(',')[1].rstrip())
     offset = bpf_timebase_unix - bpf_timebase_uptime
-    ds_df['timestamp'] = ds_df['timestamp'].apply(lambda x: (x / 10**9) + offset - cfg.time_base )
+    ds_df['start_ts'] = ds_df['start_ts'].apply(lambda x: (x / 10**9) + offset - cfg.time_base )
+    ds_df[  'end_ts'] = ds_df[  'end_ts'].apply(lambda x: (x / 10**9) + offset - cfg.time_base )
 
-### Exclude data which is irrelevant to profiled program
-    filter = ds_df['tgid'] == int(pid)
-    ds_df = ds_df[filter]
+### Preprocess socket trace data
+  # socket trace field name meaning
+  # arg1: source IP               # arg2: destination IP
+  # arg3: source port             # arg4: destination port
+  # arg5: payload size            # arg6: checksum
+
+    socket_df  = pd.DataFrame(columns=trace_field)
+    filter     = ds_df['record_type'] == 2 # 2 for socket traces
+    socket_df  = ds_df[filter]
     
-    filter = ds_df['net_layer'] == 300
-    ds_tx_df = ds_df[filter]
+    socket_df['arg1'] = socket_df['arg1'].apply(lambda x: str( x        & 0x000000FF) + "."
+                                                        + str((x >>  8) & 0x000000FF) + "."
+                                                        + str((x >> 16) & 0x000000FF) + "."
+                                                        + str((x >> 24) & 0x000000FF) 
+                                               )
+    socket_df['arg2'] = socket_df['arg2'].apply(lambda x: str( x        & 0x000000FF) + "."
+                                                        + str((x >>  8) & 0x000000FF) + "."
+                                                        + str((x >> 16) & 0x000000FF) + "."
+                                                        + str((x >> 24) & 0x000000FF) 
+                                               )
+#   socket_df['arg3'] = socket_df.apply(lambda x: (socket_df['arg3'].values >> 8) & 0x00FF | (socket_df['arg3'].values << 8) & 0xFF00)
+    socket_df['arg3'] = socket_df['arg3'].apply(lambda x: (x >> 8) & 0x00FF | (x << 8) & 0xFF00)
+    socket_df['arg4'] = socket_df['arg4'].apply(lambda x: (x >> 8) & 0x00FF | (x << 8) & 0xFF00)
 
-    filter = ds_df['net_layer'] == 1410
-    ds_rx_df = ds_df[filter]
+### Classify socket traces by function ID 
+  # 20: socket_sendmsg
+  # 30: socket_recvmsg
+    filter       = socket_df['fun_ID'] == 20
+    socket_tx_df = socket_df[filter]
 
-    ds_df.to_csv(logdir + 'ds_trace_%s'%pid, mode='w', index=False, float_format='%.9f')
-    ds_tx_df.to_csv(logdir + 'ds_trace_pub_%s'%pid, mode='w', index=False, float_format='%.9f')
-    ds_rx_df.to_csv(logdir + 'ds_trace_sub_%s'%pid, mode='w', index=False, float_format='%.9f')
+    filter       = socket_df['fun_ID'] == 30
+    socket_rx_df = socket_df[filter]
 
-    ds_norm_time_lists = [ds_tx_df.values.tolist(), ds_rx_df.values.tolist()]
+    socket_df.to_csv(logdir + 'socket_trace_%s'%pid, mode='w', index=False, float_format='%.9f')
+    socket_tx_df.to_csv(logdir + 'socket_trace_tx_%s'%pid, mode='w', index=False, float_format='%.9f')
+    socket_rx_df.to_csv(logdir + 'socket_trace_rx_%s'%pid, mode='w', index=False, float_format='%.9f')
 
-    pid2ip = ds_tx_df[0:1].values.tolist()
+    socket_norm_time_lists = [socket_tx_df.values.tolist(), socket_rx_df.values.tolist()]
+
+### pid to IP/Port mapping
+    pid2ip = socket_tx_df[0:1].values.tolist()
     pid2ip = pid2ip[0]
-    pid2ip = str(pid2ip[3]) + ' ' + str(pid2ip[7]) +":"+str(pid2ip[8])
+    pid2ip = str(pid2ip[4]) + ' ' + str(pid2ip[13]) + ":" + str(pid2ip[15])
     f = open ('%spid2ip.txt'%logdir, 'w')
     f.write(pid2ip)
     f.close()
 
-# DS trace 
-# 0: Timestamp   # 3: tgid       # 6: payload     # 9: d_ip       # 12: start_time
-# 1: comm        # 4: tid        # 7: s_ip        # 10: d_port
-# 2: pkt_type    # 5: net_layer  # 8: s_port      # 11: Checksum 
- 
-# SOFA trace
+# DS/DDS trace field index/name
+# 0: Timestamp       # 3: record_type       # 6: fun_ID            # 9: seq          # 12: gid_seria         # 20: ret
+# 1: start_TS        # 4: tgid              # 7: topic_name        # 10: gid_sys     # 13 ~ 18: arg1 ~ arg6 
+# 2: end_TS          # 5: tid               # 8: comm              # 11: gid_local   # 19: link       
+  
+# SOFA trace field index/name
 # 0: timestamp   # 3: deviceId   # 6: bandwidth   # 9:  pid       # 12: category
 # 1: event       # 4: copyKind   # 7: pkt_src     # 10: tid
 # 2: duration    # 5: payload    # 8: pkt_dst     # 11: name
         
-### Convert to SOFA trace format
+### Convert DS teace to SOFA trace format
     SOFA_trace_lists = []
-    sofa_trace_index = [0, -1, -1, 11, -1, 6, -1, 1, 1, -1, 3, 1, -1]
-    SOFA_trace_lists.append(formatted_lines_to_trace(ds_norm_time_lists[0], sofa_trace_index))
-    SOFA_trace_lists.append(formatted_lines_to_trace(ds_norm_time_lists[1], sofa_trace_index))
-    SOFA_trace_lists.append(trace_calculate_bandwidth(ds_norm_time_lists[0]))
-    SOFA_trace_lists.append(trace_calculate_bandwidth(ds_norm_time_lists[1]))
+    ds_trace4sofa_trace_index = [1, -1, -1, 18, -1, 17, -1, 
+                        1,  1, -1,  4,  1, -1]
+
+    functions = ds_trace_preprocess_functions_init()
+    functions[7] = get_socket_src_addr
+    functions[8] = get_socket_des_addr
+    functions[11] = create_socket_info
+
+    SOFA_trace_lists.append(ds_traces2sofa_traces(socket_norm_time_lists[0], ds_trace4sofa_trace_index, functions))
+    SOFA_trace_lists.append(ds_traces2sofa_traces(socket_norm_time_lists[1], ds_trace4sofa_trace_index, functions))
+    SOFA_trace_lists.append(trace_calculate_bandwidth_v2(socket_norm_time_lists[0]))
+    SOFA_trace_lists.append(trace_calculate_bandwidth_v2(socket_norm_time_lists[1]))
+
+### Preprocess DDS trace
+    dds_df = pd.DataFrame(columns=trace_field)
+    filter = ds_df['record_type'] == 1 # 1 for DDS traces
+    dds_df = ds_df[filter]
+
+    filter = dds_df['fun_ID'] <= 1
+    dds_pub_df = dds_df[filter]
+
+    filter = dds_df['fun_ID'] == 7
+    dds_sub_df = dds_df[filter]
+
+    dds_df.to_csv(logdir + 'dds_trace_%s'%pid, mode='w', index=False, float_format='%.9f')
+    dds_pub_df.to_csv(logdir + 'dds_trace_pub_%s'%pid, mode='w', index=False, float_format='%.9f')
+    dds_sub_df.to_csv(logdir + 'dds_trace_sub_%s'%pid, mode='w', index=False, float_format='%.9f')
+
+    dds_norm_time_lists = [dds_pub_df.values.tolist(), dds_sub_df.values.tolist()]
+
+
+# DS/DDS trace 
+# 0: Timestamp       # 3: record_type       # 6: fun_ID            # 9: seq          # 12: gid_seria         # 20: ret
+# 1: start_TS        # 4: tgid              # 7: topic_name        # 10: gid_sys     # 13 ~ 18: arg1 ~ arg6 
+# 2: end_TS          # 5: tid               # 8: comm              # 11: gid_local   # 19: link    
+
+# SOFA trace
+# 0: timestamp   # 3: deviceId   # 6: bandwidth   # 9:  pid       # 12: category
+# 1: event       # 4: copyKind   # 7: pkt_src     # 10: tid
+# 2: duration    # 5: payload    # 8: pkt_dst     # 11: name
+
+    sofa_trace_index = [1,  6, -1, -1, -1, -1, -1,  
+                       -1, -1,  4,  5,  8, -1]
+    SOFA_trace_lists.append(dds_toSOFA_trace_v2(dds_norm_time_lists[0], sofa_trace_index))
+    SOFA_trace_lists.append(dds_toSOFA_trace_v2(dds_norm_time_lists[1], sofa_trace_index))
 
 ### Convert to csv format which SOFA used to be stored as SOFA trace class  
     return [
             list_to_csv_and_traces(logdir, SOFA_trace_lists[0], 'ds_trace_tx%s.csv'%pid, 'w'),
             list_to_csv_and_traces(logdir, SOFA_trace_lists[1], 'ds_trace_rx%s.csv'%pid, 'w'),
             list_to_csv_and_traces(logdir, SOFA_trace_lists[2], 'ds_trace_tx_bandwidth%s.csv'%pid, 'w'),
-            list_to_csv_and_traces(logdir, SOFA_trace_lists[3], 'ds_trace_rx_bandwidth%s.csv'%pid, 'w')
+            list_to_csv_and_traces(logdir, SOFA_trace_lists[3], 'ds_trace_rx_bandwidth%s.csv'%pid, 'w'),
+            list_to_csv_and_traces(logdir, SOFA_trace_lists[4], 'dds_trace_pub%s.csv'%pid, 'w'),
+            list_to_csv_and_traces(logdir, SOFA_trace_lists[5], 'dds_trace_sub%s.csv'%pid, 'w')
            ]
 
-def dds_do_preprocess(cfg, logdir, pid):	
-    from sofa_preprocess import sofa_fieldnames
-    from sofa_preprocess import list_to_csv_and_traces
 
-   
+def create_span_in_hightchart (x, y, name):
+    trace = ds_cnct_trace_init()
+    trace = [name, x, y]
+    return trace
 
-    ds_trace_field = ['timestamp', 'comm', 'topic_name', 'tgid','tid','fid','topic_p','writer_p','data_p','winfo_p', 
-                      'v_msg', 'gid_sys', 'gid_local', 'gid_seria', 'seq']
+# DS/DDS trace 
+# 0: Timestamp       # 3: record_type       # 6: fun_ID            # 9: seq          # 12: gid_seria         # 20: ret
+# 1: start_TS        # 4: tgid              # 7: topic_name        # 10: gid_sys     # 13 ~ 18: arg1 ~ arg6 
+# 2: end_TS          # 5: tid               # 8: comm              # 11: gid_local   # 19: link  
+def ds_dds_create_span(cfg):
+    trace_field = ['timestamp', 'start_ts', 'end_ts', 'record_type', 'tgid', 'tid', 'fun_ID', 'topic_name', 'comm', 'seq', 
+                   'gid_sys', 'gid_local', 'gid_seria', 'arg1', 'arg2', 'arg3', 'arg4', 'arg5', 'arg6', 'link', 'ret']
+    all_df = pd.DataFrame([], columns=trace_field)
 
-    tmp_ds_df = pd.read_csv('%s/dds_trace'%logdir, sep=',\s+', delimiter=',', encoding="utf-8",
-                            skipinitialspace=False, header=0)
-    tmp_ds_df = tmp_ds_df.dropna()
-    ds_df = pd.DataFrame(columns=ds_trace_field)
-    for i in range(len(tmp_ds_df.columns)):
-        if i < 4:
-            series = tmp_ds_df.iloc[:,i]
-            ds_df.iloc[:,i] = series
+    nodes_dir = glob.glob('[0-9]*')
+    pid_map = {}
+    vid_seq_map = {}
+
+    for nd_dir_iter in nodes_dir:
+
+        df = pd.read_csv('%s/ds_dds_trace_%s'%(nd_dir_iter, nd_dir_iter), sep=',\s+', delimiter=',', encoding="utf-8",
+                            skipinitialspace=True, header=0, float_precision='round_trip')
+
+        all_df = pd.concat([df, all_df], ignore_index=True, sort=False)
+
+    for row in range(all_df.size):
+        print(all_df[row][10])
+        vid_seq = str(all_df[row][10]) + str(all_df[row][11]) + str(all_df[row][12]) + str(all_df[row][9])
+
+        if uid not in vid_seq_map:
+            vid_seq_map[str(vid_seq)] = []
+            vid_seq_map[str(vid_seq)].append(all_df[row])
         else:
-            series = tmp_ds_df.iloc[:,i]
-            ds_df.iloc[:,i+1] = series
-            ds_df.iloc[:,i+1] = ds_df.iloc[:,i+1].astype('int64')
+            vid_seq_map[str(vid_seq)].append(all_df[row])
 
+    df_in_process = pd.DataFrame([], columns=trace_field)                            
+    for vid_seq in vid_seq_map:
+        tmp_df = pd.DataFrame(vid_seq_map[vid_seq], columns=trace_field)
+        filter = tmp_df['fun_ID'] == 1
+        start_df = tmp_df[filter]
+        start = start_df[0]['start_ts']
+        tmp_df['timestamp'] = tmp_df['start_ts']
+        tmp_df[ 'start_ts'] = tmp_df['start_ts'].apply(lambda x: x - start)
+        tmp_df[   'end_ts'] = tmp_df[  'end_ts'].apply(lambda x: x - start)
+        df_in_process = pd.concat([tmp_df, df_in_process], ignore_index=True, sort=False)
+        
+    table4SOFA = []
+    for row in range(len(df_in_process)):
+        tmp_df = df_in_process[row]
+        x = tmp_df['timestamp']
+        y1 = tmp_df['start_ts']
+        y2 = tmp_df['end_ts']
+        y1_info = 'functionID: ' + str(tmp_df['Fun_ID']) + ' Start time:' + str(tmp_df['timestamp'])
+        y2_info = 'functionID: ' + str(tmp_df['Fun_ID']) + ' End time:' + str(tmp_df['timestamp'] + tmp_df['end_ts'])
+        table4SOFA.append([x,y1,y1_info])
+        table4SOFA.append([x,y2,y2_info])
 
-    ds_df['tid']  = ds_df['tgid'].astype('int64').apply( lambda x: x & 0xFFFFFFFF )
+    field4sofa = ['x', 'y', 'info']
+    df4sofa = pd.DataFrame(table4SOFA, columns=field4sofa)
+    df4sofa.sort_values('x')
 
-    ds_df['tgid'] = ds_df['tgid'].apply( lambda x: (int(x) >> 32) & 0xFFFFFFFF )
+    cnct_trace = []
+    for row in range(len(df4sofa)):
+        if row%2 == 0:
+            cnct_trace.append(create_span_in_hightchart(df4sofa[row]['x'], df4sofa[row]['y'], df4sofa[row]['info']))
 
+        else:
+            cnct_trace.append(create_span_in_hightchart(df4sofa[row]['x'], df4sofa[row]['y'], df4sofa[row]['info']))
+            cnct_trace.append(ds_cnct_trace_init())
+                    
+        
+    cnct_trace = pd.DataFrame(cnct_trace, columns = ['name','x','y'])
 
-### Normalize traces time
-    ds_df.sort_values('timestamp')
-    #remove_noise = ds_df.values.tolist()
-    #for i in len(remove_noise):
-     #   remove_noise[i]
-    bpf_timebase_uptime = 0 
-    bpf_timebase_unix = 0 
-    
-    with open(logdir + 'bpf_timebase.txt') as f:
-        lines = f.readlines()
-        bpf_timebase_unix = float(lines[-1].split(',')[0])
-        bpf_timebase_uptime = float(lines[-1].split(',')[1].rstrip())
-    offset = bpf_timebase_unix - bpf_timebase_uptime
-    ds_df['timestamp'] = ds_df['timestamp'].apply(lambda x: (x / 10**9) + offset - cfg.time_base )
+    sofatrace = SOFATrace()
+    sofatrace.name = 'DDS_span_view' 
+    sofatrace.title = 'DDS_Span'
+    sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
+    sofatrace.x_field = 'x'
+    sofatrace.y_field = 'y'
+    sofatrace.data = cnct_trace
+    traces.append(sofatrace)
 
-### Exclude data which is irrelevant to profiled program
-    filter = ds_df['tgid'] == int(pid)
-    ds_df = ds_df[filter]
-    
-    filter = ds_df['fid'] != 21
-    ds_tx_df = ds_df[filter]
+    traces_to_json(traces, 'span_view.js', cfg, '')      
 
-    filter = ds_df['fid'] == 21
-    ds_rx_df = ds_df[filter]
-
-    ds_df.to_csv(logdir + 'dds_trace_%s'%pid, mode='w', index=False, float_format='%.9f')
-    ds_tx_df.to_csv(logdir + 'dds_trace_pub_%s'%pid, mode='w', index=False, float_format='%.9f')
-    ds_rx_df.to_csv(logdir + 'dds_trace_sub_%s'%pid, mode='w', index=False, float_format='%.9f')
-
-    ds_norm_time_lists = [ds_tx_df.values.tolist(), ds_rx_df.values.tolist()]
-
-
-
-# SOFA trace
-# 0: timestamp   # 3: deviceId   # 6: bandwidth   # 9:  pid       # 12: category
-# 1: event       # 4: copyKind   # 7: pkt_src     # 10: tid
-# 2: duration    # 5: payload    # 8: pkt_dst     # 11: name
-    SOFA_trace_lists = []
-
-
-    sofa_trace_index = [0,  5, -1, -1,
-                       -1, -1, -1, -1, 
-                       -1,  3,  4,  1, 
-                       -1]
-    SOFA_trace_lists.append(dds_toSOFA_trace(ds_norm_time_lists[0], sofa_trace_index))
-    SOFA_trace_lists.append(dds_toSOFA_trace(ds_norm_time_lists[1], sofa_trace_index))
-
-    return [
-            list_to_csv_and_traces(logdir, SOFA_trace_lists[0], 'dds_trace_tx%s.csv'%pid, 'w'),
-            list_to_csv_and_traces(logdir, SOFA_trace_lists[1], 'dds_trace_rx%s.csv'%pid, 'w')
-           ]
 
 # Not used
 def ds_find_sender(recv_iter, all_send_index_list, send_find, send_canidate, latency, negative,total_latency):
@@ -330,7 +466,6 @@ def ds_find_sender(recv_iter, all_send_index_list, send_find, send_canidate, lat
                         total_latency += recv_tmp[0] - send_tmp[0]
                         return total_latency, send_cnt
 
-        
     return total_latency, False
 
 ### Add single point information in Highchart's line chart data format 
@@ -338,13 +473,13 @@ def create_cnct_trace(cnct_list, is_sender, pid_yPos_dic):
     cnct_trace_tmp = list(cnct_list)
     
     name = ''
-    x = cnct_trace_tmp[0]
-    y = pid_yPos_dic[str(cnct_trace_tmp[3])]
+    x = cnct_trace_tmp[1]
+    y = pid_yPos_dic[str(cnct_trace_tmp[4])]
 
     if is_sender:
-        name = str(cnct_trace_tmp[7]) + ':' + str(cnct_trace_tmp[8]) + ' | checksum = ' + str(cnct_trace_tmp[11])
+        name = str(cnct_trace_tmp[13]) + ':' + str(cnct_trace_tmp[15]) + ' | checksum = ' + str(cnct_trace_tmp[18])
     else:
-        name = str(cnct_trace_tmp[9]) + ':' + str(cnct_trace_tmp[10]) + ' | checksum = ' + str(cnct_trace_tmp[11])
+        name = str(cnct_trace_tmp[14]) + ':' + str(cnct_trace_tmp[16]) + ' | checksum = ' + str(cnct_trace_tmp[18])
 
     trace = ds_cnct_trace_init()
     trace = [name, x, y]
@@ -352,13 +487,16 @@ def create_cnct_trace(cnct_list, is_sender, pid_yPos_dic):
     return trace
     
 def ds_connect_preprocess(cfg):
+# DS/DDS trace field name
+# 0: Timestamp       # 3: record_type       # 6: fun_ID            # 9: seq          # 12: gid_seria         # 20: ret
+# 1: start_TS        # 4: tgid              # 7: topic_name        # 10: gid_sys     # 13 ~ 18: arg1 ~ arg6 
+# 2: end_TS          # 5: tid               # 8: comm              # 11: gid_local   # 19: link   
     logdir = cfg.logdir
-    ds_trace_field = ['timestamp', 'comm', 'pkt_type', 'tgid', 'tid', 'net_layer', 
-                      'payload', 's_ip', 's_port', 'd_ip', 'd_port', 'checksum', 'start_time']
+    ds_trace_field = ['timestamp', 'start_ts', 'end_ts', 'record_type', 'tgid', 'tid', 'fun_ID', 'topic_name', 'comm', 'seq', 
+                   'gid_sys', 'gid_local', 'gid_seria', 'arg1', 'arg2', 'arg3', 'arg4', 'arg5', 'arg6', 'link', 'ret']
 
     all_ds_df = pd.DataFrame([], columns=ds_trace_field)
-    #a = highchart_annotation_label()
-    #c = json.dumps(a.__dict__)
+   
     pid_yPos_dic = {} 
     yPos_cnt = 0
     pid_ip_dic = {}
@@ -388,59 +526,45 @@ def ds_connect_preprocess(cfg):
         pid_ip_dic[pid2ip[0]] = pid2ip[1]
         pid_yPos_dic[nd_dir_iter] = yPos_cnt
 
-        ds_df = pd.read_csv('%s/ds_trace_%s'%(nd_dir_iter, nd_dir_iter), sep=',\s+', delimiter=',', encoding="utf-8",
+        ds_df = pd.read_csv('%s/socket_trace_%s'%(nd_dir_iter, nd_dir_iter), sep=',\s+', delimiter=',', encoding="utf-8",
                             skipinitialspace=True, header=0, float_precision='round_trip')
 
             
         if en_adjust and adjust_file_exist and (nd_dir_iter == adjust_list[0]):
-            ds_df['timestamp'] = ds_df['timestamp'].apply( lambda x: x - float(adjust_list[1]) )
+            ds_df['start_ts'] = ds_df['start_ts'].apply( lambda x: x - float(adjust_list[1]) )
 
 
         all_ds_df = pd.concat([ds_df, all_ds_df], ignore_index=True, sort=False)
 
         yPos_cnt += 1
 
-    all_ds_df.sort_values(by='timestamp', inplace=True)
+    all_ds_df.sort_values(by='start_ts', inplace=True)
     all_ds_df.to_csv('processed_ds_record', mode='w', index=False, float_format='%.9f')
-    print('In kernel ds data preprocess done')
-    de_noise = all_ds_df.values.tolist()
-    max_cnt = 0
-    discard="""
-    for command in command_dic:
+    print('\nIn kernel ds data preprocess done')
 
-        cnt = False
 
-        for i in range(len(de_noise)):
-            if de_noise[i][1].find(command) !=-1:
-                cnt = i
-
-                break
-        if cnt and cnt > max_cnt:
-            max_cnt = cnt
-
-    de_noise = de_noise[max_cnt:]
-    all_ds_df = pd.DataFrame(de_noise, columns=ds_trace_field)
-    """
 
     y = [0,0,0,0,0,0,0,0,0,0,0,0,0]
 
     ds_df_no_multicast = pd.DataFrame([], columns=ds_trace_field)
-    ds_df_no_multicast = all_ds_df.apply( lambda x: x if (int(x['d_ip'].split('.')[0]) & 0xf0 != 0xe0) else None
+    ds_df_no_multicast = all_ds_df.apply( lambda x: x if (int(x['arg2'].split('.')[0]) & 0xf0 != 0xe0) else 0
                                          , result_type='broadcast', axis=1)
-    ds_df_no_multicast = ds_df_no_multicast.dropna()
+    #print(ds_df_no_multicast)
+    #ds_df_no_multicast = ds_df_no_multicast.dropna()
     #ds_df_no_multicast = all_ds_df
 
 ### Not really important, just nickname for sender and receiver records.
-    filter = ds_df_no_multicast['net_layer'] == 300 
+    filter = ds_df_no_multicast['fun_ID'] == 20 
     all_send_df = ds_df_no_multicast[filter]
     #all_send_df = all_send_df.apply(lambda x: x if (x['comm'].find('xmit.user')>-1) else None, result_type='broadcast', axis=1)
     all_send_df = all_send_df.dropna()	
     all_send_list = all_send_df.values.tolist()
 
-    filter = ds_df_no_multicast['net_layer'] == 1410
+    filter = ds_df_no_multicast['fun_ID'] == 30
     all_recv_df = ds_df_no_multicast[filter]
     all_recv_list = all_recv_df.values.tolist()
 
+    print(all_recv_df)
 ### Create list to accelerate preprocess when finding network connection which is accomplished by remove redundant calculation.
     all_send_index_list = []
     all_recv_index_list = []
@@ -456,8 +580,9 @@ def ds_connect_preprocess(cfg):
     feature_send_dic = {}
     for send_cnt in range(len(all_send_index_list)):
         send_tmp = all_send_index_list[send_cnt][0]
-        send_feature_pattern = str(send_tmp[7]) + str(send_tmp[8]) + str(send_tmp[9]) + \
-                               str(send_tmp[10]) + str(send_tmp[11])
+        send_feature_pattern = \
+                               str(send_tmp[13]) + str(send_tmp[15]) + str(send_tmp[14]) + \
+                               str(send_tmp[16]) + str(send_tmp[18])
         if send_feature_pattern not in feature_send_dic:
             feature_send_dic[send_feature_pattern] = [1, send_cnt]
             send_canidate[send_cnt] = True
@@ -470,8 +595,9 @@ def ds_connect_preprocess(cfg):
     feature_recv_dic = {}
     for recv_cnt in range(len(all_recv_index_list)):
         recv_tmp = all_recv_index_list[recv_cnt][0]
-        recv_feature_pattern = str(recv_tmp[7]) + str(recv_tmp[8]) + str(recv_tmp[9]) + \
-                               str(recv_tmp[10]) + str(recv_tmp[11])
+        recv_feature_pattern =  \
+                               str(recv_tmp[13]) + str(recv_tmp[15]) + str(recv_tmp[14]) + \
+                               str(recv_tmp[16]) + str(recv_tmp[18])
         if recv_feature_pattern not in feature_recv_dic:
             feature_recv_dic[recv_feature_pattern] = [1, recv_cnt]
             recv_canidate[recv_cnt] = True
@@ -513,9 +639,10 @@ def ds_connect_preprocess(cfg):
                 continue
 
             recv_tmp = all_recv_index_list[recv_cnt][0]
-            recv_feature_pattern = str(recv_tmp[7]) + str(recv_tmp[8]) + str(recv_tmp[9]) + \
-                                   str(recv_tmp[10]) + str(recv_tmp[11])
-
+            recv_feature_pattern = \
+                                   str(recv_tmp[13]) + str(recv_tmp[15]) + str(recv_tmp[14]) + \
+                                   str(recv_tmp[16]) + str(recv_tmp[18])
+            print(recv_feature_pattern)
             sfind = False
             for send_cnt in range(len(all_send_index_list)):
                 if not send_canidate[all_send_index_list[send_cnt][1]]:
@@ -525,57 +652,58 @@ def ds_connect_preprocess(cfg):
                 send_tmp = list(all_send_index_list[send_cnt][0])
                 if  recv_tmp[0] - send_tmp[0] < 0:
                     pass #break
-                send_feature_pattern = str(send_tmp[7]) + str(send_tmp[8]) + str(send_tmp[9]) + \
-                                       str(send_tmp[10]) + str(send_tmp[11])
+                send_feature_pattern =  \
+                                       str(send_tmp[13]) + str(send_tmp[15]) + str(send_tmp[14]) + \
+                                       str(send_tmp[16]) + str(send_tmp[18])
 
                 if (recv_feature_pattern == send_feature_pattern):
                     sfind = send_cnt
                     match_cnt += 1
 
-                    acc_id = str(send_tmp[7]) + " to " + str(send_tmp[9])
+                    acc_id = str(send_tmp[13]) + " to " + str(send_tmp[14])
                     if acc_id not in accounting:
                         accounting[acc_id] = {}
                         accounting[acc_id]['latency'] = []
                         accounting[acc_id]['bandwidth'] = []
 
-                    accounting[acc_id]['latency'].append(recv_tmp[0] - send_tmp[0])
-                    accounting[acc_id]['bandwidth'].append([send_tmp[0], recv_tmp[0], recv_tmp[6] ])
+                    accounting[acc_id]['latency'].append(recv_tmp[1] - send_tmp[1])
+                    accounting[acc_id]['bandwidth'].append([send_tmp[1], recv_tmp[1], recv_tmp[17] ])
 
-                    if  recv_tmp[0] - send_tmp[0] < 0:
+                    if  recv_tmp[1] - send_tmp[1] < 0:
                         continue
                         neg_count += 1
-                        total_neg += recv_tmp[0] - send_tmp[0]
-                        if send_tmp[3] in neg_who_dic:
-                            neg_who_dic[send_tmp[3]]['neg_count'] += 1
+                        total_neg += recv_tmp[1] - send_tmp[1]
+                        if send_tmp[4] in neg_who_dic:
+                            neg_who_dic[send_tmp[4]]['neg_count'] += 1
                         else:
-                            neg_who_dic[send_tmp[3]] = {}
-                            neg_who_dic[send_tmp[3]]['neg_count'] = 1
-                            neg_who_dic[send_tmp[3]]['neg_max'] = 0
-                            neg_who_dic[send_tmp[3]]['pos_count'] = 0
-                            neg_who_dic[send_tmp[3]]['pos_min'] = 16
+                            neg_who_dic[send_tmp[4]] = {}
+                            neg_who_dic[send_tmp[4]]['neg_count'] = 1
+                            neg_who_dic[send_tmp[4]]['neg_max'] = 0
+                            neg_who_dic[send_tmp[4]]['pos_count'] = 0
+                            neg_who_dic[send_tmp[4]]['pos_min'] = 16
 
-                        print(abs(recv_tmp[0] - send_tmp[0]))
-                        if 6 > abs(recv_tmp[0] - send_tmp[0]) > neg_who_dic[send_tmp[3]]['neg_max']: 
-                            negative_max = abs(recv_tmp[0] - send_tmp[0])
-                            neg_who_dic[send_tmp[3]]['neg_max'] = negative_max
+                        print(abs(recv_tmp[1] - send_tmp[1]))
+                        if 6 > abs(recv_tmp[1] - send_tmp[1]) > neg_who_dic[send_tmp[4]]['neg_max']: 
+                            negative_max = abs(recv_tmp[1] - send_tmp[1])
+                            neg_who_dic[send_tmp[4]]['neg_max'] = negative_max
                             
                     else:
                         pos_count += 1
-                        total_pos += recv_tmp[0] - send_tmp[0]
+                        total_pos += recv_tmp[1] - send_tmp[1]
 
-                        if send_tmp[3] in neg_who_dic:
-                            neg_who_dic[send_tmp[3]]['pos_count'] += 1
+                        if send_tmp[4] in neg_who_dic:
+                            neg_who_dic[send_tmp[4]]['pos_count'] += 1
                         else:
-                            neg_who_dic[send_tmp[3]] = {}
-                            neg_who_dic[send_tmp[3]]['neg_count'] = 0
-                            neg_who_dic[send_tmp[3]]['neg_max'] = 0
-                            neg_who_dic[send_tmp[3]]['pos_count'] = 1
-                            neg_who_dic[send_tmp[3]]['pos_min'] = 16
+                            neg_who_dic[send_tmp[4]] = {}
+                            neg_who_dic[send_tmp[4]]['neg_count'] = 0
+                            neg_who_dic[send_tmp[4]]['neg_max'] = 0
+                            neg_who_dic[send_tmp[4]]['pos_count'] = 1
+                            neg_who_dic[send_tmp[4]]['pos_min'] = 16
 
                         #if positive_min > abs(recv_tmp[0] - send_tmp[0]) and who !=send_tmp[3]:
-                        if abs(recv_tmp[0] - send_tmp[0]) < neg_who_dic[send_tmp[3]]['pos_min']: 
-                            positive_min = abs(recv_tmp[0] - send_tmp[0])
-                            neg_who_dic[send_tmp[3]]['pos_min'] = positive_min
+                        if abs(recv_tmp[1] - send_tmp[1]) < neg_who_dic[send_tmp[4]]['pos_min']: 
+                            positive_min = abs(recv_tmp[1] - send_tmp[1])
+                            neg_who_dic[send_tmp[4]]['pos_min'] = positive_min
                     break;
            # total_latency, send_cnt = \
            # ds_find_sender(all_recv_index_list[recv_cnt], all_send_index_list, send_find, send_canidate, latency, negative,total_latency)
@@ -587,9 +715,9 @@ def ds_connect_preprocess(cfg):
                 send_select = all_send_index_list[sfind][1]
                 recv_select = all_recv_index_list[recv_cnt][1]
 
-                node2node = 'Node ' + str(all_send_index_list[sfind][0][7]) + \
-                            ' to Node ' + str(all_recv_index_list[recv_cnt][0][9])
-                
+                node2node = 'Node ' + str(all_send_index_list[sfind][0][13]) + \
+                            ' to Node ' + str(all_recv_index_list[recv_cnt][0][14])
+                print(node2node)
 ### -----------    If we want to create point to point connect effect in highchart's line chart, 
 ### ----------- we need to add null data in series for differentiating different connection.
                 if node2node in node2node_traceIndex_dic:
@@ -621,8 +749,7 @@ def ds_connect_preprocess(cfg):
 ### --- Though in practice it should not exceed 1 second.
 
         if ( retry) and True:
-            #print(len(all_send_index_list))
-            #print(len(all_recv_index_list))
+
             if not negative:
                 #print("positive latency %d %d"%(latency, len(all_send_index_list)))
                 if (latency < 1):
@@ -637,8 +764,7 @@ def ds_connect_preprocess(cfg):
                     latency = 1
                     recv_cnt_skip = 0
             else:
-                #print("negative latency %d %d"%(latency,pre_sent_count - len(all_send_index_list)))
-                #print(pre_recv_count - len(all_recv_index_list))
+
                 pre_sent_count = len(all_send_index_list)
                 pre_recv_count = len(all_recv_index_list)
                 if (latency < 2):
@@ -653,10 +779,6 @@ def ds_connect_preprocess(cfg):
 
     for i in range(len(all_recv_index_list)):
         result_recv_list.append(all_recv_index_list[i][0])
-
-    #print(len(result_send_list))
-    #print(len(result_recv_list))
-    #print('min positive latency: %s'%positive_max)
 
 
 

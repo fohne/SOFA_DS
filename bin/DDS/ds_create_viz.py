@@ -4,7 +4,7 @@ def ds_create_viz(ds_logpath, nodes_record_dir):
     #os.system('cp %s/../sofaboard/ds_index_template ./' % sofa_home)
     #os.system('cp %s/../sofaboard/timeline.js ./' % sofa_home)
     
-    f = open('%s/../sofaboard/ds_index_template' % sofa_home ,'r')
+    f = open('%s/../../sofaboard/ds_index_template' % sofa_home ,'r')
     index = f.read()
     f.close()
     loc = index.find('<!--BODY-->')
@@ -13,7 +13,7 @@ def ds_create_viz(ds_logpath, nodes_record_dir):
     bottom_index = index[loc:]
     
 
-    f = open('%s/../sofaboard/timeline.js' % sofa_home)
+    f = open('%s/../../sofaboard/timeline.js' % sofa_home)
     timeline = f.read()
     f.close
     replace_string = ''
@@ -28,7 +28,7 @@ def ds_create_viz(ds_logpath, nodes_record_dir):
         top_index = top_index + '\n        <div id="container%s" style="min-width: 310px; height: 400px; max-width: 90%%; margin: 0 auto"></div>' % nodes_record_dir[i]
         #top_index = top_index + '\n        <script src="hl%s.js"></script>' % nodes_record_dir[i]
         top_index = top_index + '\n        <script src="report%s.js"></script>' % nodes_record_dir[i]
-        top_index = top_index + '\n        <script src="outfitter%s.js"></script>' % nodes_record_dir[i]
+        top_index = top_index + '\n        <script src="outlier%s.js"></script>' % nodes_record_dir[i]
         top_index = top_index + '\n        <script src="timeline%s.js"></script>' % nodes_record_dir[i]
 
         f = open ('%s/topic_lat_report_cnt.txt'%nodes_record_dir[i])
@@ -45,13 +45,13 @@ def ds_create_viz(ds_logpath, nodes_record_dir):
 
         f = open('timeline%s.js' % nodes_record_dir[i], 'w')
         f.write(replace_string)
-        os.system('cp %s/outfitter.js ./outfitter%s.js' % (nodes_record_dir[i], nodes_record_dir[i]))
+        os.system('cp %s/outlier.js ./outlier%s.js' % (nodes_record_dir[i], nodes_record_dir[i]))
         os.system('cp %s/hl.js ./hl%s.js' % (nodes_record_dir[i], nodes_record_dir[i]))
         os.system('cp %s/report.js ./report%s.js' % (nodes_record_dir[i], nodes_record_dir[i]))
         f.close()
         pass
     
-    f = open('%s/../sofaboard/connect_timeline.js' % sofa_home)
+    f = open('%s/../../sofaboard/connect_timeline.js' % sofa_home)
     connection_view_timeline = f.read()
     f.close()
 
@@ -74,6 +74,23 @@ def ds_create_viz(ds_logpath, nodes_record_dir):
               '\n        <div id="container" style="min-width: 310px; height: 400px; max-width: 90%%; margin: 0 auto"></div>'
     top_index = top_index + '\n        <script src="connect_view_data.js"></script>'
     top_index = top_index + '\n        <script src="connect_timeline.js"></script>\n'
+
+####  Span
+    f = open('%s/../../sofaboard/connect_timeline.js' % sofa_home)
+    span_view_timeline = f.read()
+    f.close()
+    span_view_timeline.replace('container', 'container_span')
+
+
+
+    f = open('span_timeline.js', 'w')
+    f.write(span_view_timeline)
+    f.close()  
+    top_index = top_index + \
+              '\n        <div id="container" style="min-width: 310px; height: 400px; max-width: 90%%; margin: 0 auto"></div>'
+    top_index = top_index + '\n        <script src="span_view.js"></script>'
+    top_index = top_index + '\n        <script src="span_timeline.js"></script>\n'
+
 
     index = top_index + bottom_index
     f = open('./index.html', 'w')

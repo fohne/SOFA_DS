@@ -35,8 +35,8 @@ def annotating_traces_to_json(traces, path):
 
 def dds_calc_topic_latency(cfg):
     logdir = cfg.logdir
-    dds_trace_field = ['timestamp', 'comm', 'topic_name', 'tgid','tid','fid','topic_p','writer_p','data_p','winfo_p', 
-                      'v_msg', 'gid_sys', 'gid_local', 'gid_seria', 'seq']
+    dds_trace_field = ['timestamp', 'start_ts', 'end_ts', 'record_type', 'tgid', 'tid', 'fun_ID', 'topic_name', 'comm', 'seq', 
+                   'gid_sys', 'gid_local', 'gid_seria', 'arg1', 'arg2', 'arg3', 'arg4', 'arg5', 'arg6', 'link', 'ret']
 
     all_dds_df = pd.DataFrame([], columns=dds_trace_field)
     #a = highchart_annotation_label()
@@ -81,7 +81,7 @@ def dds_calc_topic_latency(cfg):
 
         yPos_cnt += 1
 
-    all_dds_df.sort_values(by='timestamp', inplace=True)
+    all_dds_df.sort_values(by='start_ts', inplace=True)
     all_dds_df.to_csv('processed_dds_record', mode='w', index=False, float_format='%.9f')
     print('DDS raw data preprocess done')
     de_noise = all_dds_df.values.tolist()
@@ -91,7 +91,7 @@ def dds_calc_topic_latency(cfg):
         cnt = False
 
         for i in range(len(de_noise)):
-            if de_noise[i][1].find(command) !=-1:
+            if de_noise[i][8].find(command) !=-1:
                 cnt = i
 
                 break
@@ -107,7 +107,7 @@ def dds_calc_topic_latency(cfg):
   
 
 ### Not really important, just nickname for sender and receiver records.
-    filter = all_dds_df['fid'] == 13
+    filter = all_dds_df['fun_ID'] == 1
     all_send_df = all_dds_df[filter]
     #all_send_df = all_send_df.apply(lambda x: x if (x['comm'].find('xmit.user')>-1) else None, result_type='broadcast', axis=1)
     all_send_df = all_send_df.dropna()	
@@ -115,7 +115,7 @@ def dds_calc_topic_latency(cfg):
     all_send_df.to_csv('all_dds_send', mode='w', index=False, float_format='%.9f')
     all_send_list = all_send_df.values.tolist()
 
-    filter = all_dds_df['fid'] == 21
+    filter = all_dds_df['fun_ID'] == 7
     all_recv_df = all_dds_df[filter]
     all_recv_df.to_csv('all_dds_recv', mode='w', index=False, float_format='%.9f')
     all_recv_list = all_recv_df.values.tolist()
@@ -141,8 +141,13 @@ def dds_calc_topic_latency(cfg):
 #['timestamp', 'comm', 'topic_name', 'tgid','tid','fid','topic_p','writer_p',
 #    'data_p', 'winfo_p', 'v_msg', 'gid_sys', 'gid_local', 'gid_seria', 'seq']
 
-        send_feature_pattern = str(send_tmp[2]) + str(send_tmp[11]) + str(send_tmp[12]) + \
-                               str(send_tmp[13]) + str(send_tmp[14])
+# DS/DDS trace field name
+# 0: Timestamp       # 3: record_type       # 6: fun_ID            # 9: seq          # 12: gid_seria         # 20: ret
+# 1: start_TS        # 4: tgid              # 7: topic_name        # 10: gid_sys     # 13 ~ 18: arg1 ~ arg6 
+# 2: end_TS          # 5: tid               # 8: comm              # 11: gid_local   # 19: link   
+
+        send_feature_pattern = str(send_tmp[7]) + str(send_tmp[10]) + str(send_tmp[11]) + \
+                               str(send_tmp[12]) + str(send_tmp[9])
         if send_feature_pattern not in feature_send_dic:
             feature_send_dic[send_feature_pattern] = [1, send_cnt]
             send_canidate[send_cnt] = True
@@ -155,8 +160,8 @@ def dds_calc_topic_latency(cfg):
     feature_recv_dic = {}
     for recv_cnt in range(len(all_recv_index_list)):
         recv_tmp = all_recv_index_list[recv_cnt][0]
-        recv_feature_pattern = str(recv_tmp[2]) + str(recv_tmp[11]) + str(recv_tmp[12]) + \
-                               str(recv_tmp[13]) + str(recv_tmp[14])
+        recv_feature_pattern = str(recv_tmp[7]) + str(recv_tmp[10]) + str(recv_tmp[11]) + \
+                               str(recv_tmp[12]) + str(recv_tmp[9])
         if recv_feature_pattern not in feature_recv_dic:
             feature_recv_dic[recv_feature_pattern] = [1, recv_cnt]
             recv_canidate[recv_cnt] = True
@@ -199,8 +204,8 @@ def dds_calc_topic_latency(cfg):
                 continue
 
             recv_tmp = all_recv_index_list[recv_cnt][0]
-            recv_feature_pattern = str(recv_tmp[2]) + str(recv_tmp[11]) + str(recv_tmp[12]) +  \
-                                   str(recv_tmp[13]) + str(recv_tmp[14])
+            recv_feature_pattern = str(recv_tmp[7]) + str(recv_tmp[10]) + str(recv_tmp[11]) +  \
+                                   str(recv_tmp[12]) + str(recv_tmp[9])
 
             sfind = False
             for send_cnt in range(len(all_send_index_list)):
@@ -211,8 +216,8 @@ def dds_calc_topic_latency(cfg):
                 send_tmp = list(all_send_index_list[send_cnt][0])
                 if  recv_tmp[0] - send_tmp[0] < 0:
                     pass #break
-                send_feature_pattern = str(send_tmp[2]) + str(send_tmp[11]) + str(send_tmp[12]) + \
-                                       str(send_tmp[13]) + str(send_tmp[14])
+                send_feature_pattern = str(send_tmp[7]) + str(send_tmp[10]) + str(send_tmp[11]) + \
+                                       str(send_tmp[12]) + str(send_tmp[9])
 
                 if (recv_feature_pattern == send_feature_pattern):
                     #print(send_feature_pattern)
@@ -220,17 +225,17 @@ def dds_calc_topic_latency(cfg):
                     match_cnt += 1
                     #print(recv_tmp[0] - send_tmp[0])
                     #print(match_cnt)
-                    acc_id = "Topic:{"+str(send_tmp[2]) +"} from " + pid_ip_dic[str(send_tmp[3])] + " to " + pid_ip_dic[str(recv_tmp[3])]
+                    acc_id = "Topic:{"+str(send_tmp[7]) +"} from " + pid_ip_dic[str(send_tmp[4])] + " to " + pid_ip_dic[str(recv_tmp[4])]
                     if acc_id not in accounting:
                         accounting[acc_id] = {}
                         accounting[acc_id]['latency'] = []
-                        accounting[acc_id]['from'] = send_tmp[3]
-                        accounting[acc_id]['to'] = recv_tmp[3]
-                        accounting[acc_id]['topic'] = str(send_tmp[2])
+                        accounting[acc_id]['from'] = send_tmp[4]
+                        accounting[acc_id]['to'] = recv_tmp[4]
+                        accounting[acc_id]['topic'] = str(send_tmp[7])
                         latency_table[acc_id] =[]
           
-                    accounting[acc_id]['latency'].append(recv_tmp[0] - send_tmp[0])
-                    latency_table[acc_id].append([recv_tmp[3],send_tmp[3],recv_tmp[0],recv_tmp[5],send_tmp[0],send_tmp[5],recv_tmp[0] - send_tmp[0],latency_cnt])
+                    accounting[acc_id]['latency'].append(recv_tmp[1] - send_tmp[1])
+                    latency_table[acc_id].append([recv_tmp[4],send_tmp[4],recv_tmp[1],recv_tmp[6],send_tmp[1],send_tmp[6],recv_tmp[1] - send_tmp[1],latency_cnt])
                     latency_cnt +=1
                   
                     break;

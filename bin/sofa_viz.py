@@ -6,7 +6,7 @@ from functools import partial
 
 from sofa_config import *
 from sofa_print import *
-from ds_create_viz import ds_create_viz
+from DDS.ds_create_viz import ds_create_viz
 
 def sofa_viz(cfg):
     sofa_home = os.path.dirname(os.path.realpath(__file__))

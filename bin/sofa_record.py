@@ -266,8 +266,9 @@ def sofa_record(command, cfg):
             os.system('sudo ntpd -u ntp:ntp')
             os.system('sudo ntpq -p')
             ds_prof = subprocess.call(['sudo', 'sleep', '1'])
-            os.system('sudo %s/bpf_ds.py > %sds_trace&'%(cfg.script_path,logdir))
-            os.system('sudo %s/dds.py > %sdds_trace&'%(cfg.script_path,logdir))
+            #os.system('sudo %s/bpf_ds.py > %sds_trace&'%(cfg.script_path,logdir))
+            #os.system('sudo %s/dds.py > %sdds_trace&'%(cfg.script_path,logdir))
+            os.system('sudo %s/DDS/bpf_ds_dds.py > %sds_dds_trace&'%(cfg.script_path,logdir))
         os.system('basename %s > %scommand.txt' % (command, logdir))
         subprocess.call('cp /proc/kallsyms %s/' % (logdir), shell=True )
         subprocess.call('chmod +w %s/kallsyms' % (logdir), shell=True )
@@ -460,8 +461,9 @@ def sofa_record(command, cfg):
             p_strace.terminate()
             print_info(cfg,"tried terminating strace")
         if cfg.ds:
-            os.system('sudo pkill bpf')
-            os.system('sudo pkill dds')
+            #os.system('sudo pkill bpf')
+            #os.system('sudo pkill dds')
+            os.system('sudo pkill bpf_ds_dds')
             with open(logdir + 'pid.txt', 'w') as pidfd:
                 subprocess.call(['perf', 'script', '-i%sperf.data'%logdir, '-F', 'pid'], stdout=pidfd)
 

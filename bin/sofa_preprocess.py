@@ -26,9 +26,7 @@ from sofa_models import SOFATrace
 from sofa_print import *
 import random 
 
-from sofa_ds_preprocess import ds_do_preprocess
-from sofa_ds_preprocess import dds_do_preprocess
-
+from DDS.sofa_ds_preprocess import ds_dds_preprocess
 sofa_fieldnames = [
     "timestamp",  # 0
     "event",  # 1
@@ -544,8 +542,7 @@ def sofa_preprocess(cfg):
         # ds global variables declaration for later raw data processing
         with open(logdir + 'pid.txt') as pidfd:
             ds_pid = int(pidfd.readline())
-            ds_traces = ds_do_preprocess(cfg, logdir, ds_pid)
-            dds_traces = dds_do_preprocess(cfg, logdir, ds_pid)
+            ds_dds_traces = ds_dds_preprocess(cfg, logdir, ds_pid)
 #==============================================================================
     with open('%s/diskstat.txt' % logdir) as f:
         diskstats = f.readlines()
@@ -2095,58 +2092,59 @@ def sofa_preprocess(cfg):
     
     if cfg.ds:
         sofatrace = SOFATrace()
-        sofatrace.name = 'ds_sender'
-        sofatrace.title = 'ds_sender_trace'
+        sofatrace.name = 'sock_send'
+        sofatrace.title = 'sock_sendmsg'
         sofatrace.color = 'rgba(0, 120, 255, 0.8)'
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'deviceId'
-        sofatrace.data = ds_traces[0]
+        sofatrace.data = ds_dds_traces[0]
         traces.append(sofatrace)
 
         sofatrace = SOFATrace()
-        sofatrace.name = 'ds_receiver'
-        sofatrace.title = 'ds_receiver_trace'
+        sofatrace.name = 'sock_recv'
+        sofatrace.title = 'sock_ecvmsg'
         sofatrace.color = 'rgba(255, 33, 44, 0.8)'
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'deviceId'
-        sofatrace.data = ds_traces[1]
+        sofatrace.data = ds_dds_traces[1]
         traces.append(sofatrace)
 
         sofatrace = SOFATrace()
-        sofatrace.name = 'ds_tx_band'
-        sofatrace.title = 'ds_sender_band'
+        sofatrace.name = 'sock_send_band'
+        sofatrace.title = 'socksend_bandwidth'
         sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'bandwidth'
-        sofatrace.data = ds_traces[2]
+        sofatrace.data = ds_dds_traces[2]
         traces.append(sofatrace)
 
         sofatrace = SOFATrace()
-        sofatrace.name = 'ds_rx_band'
-        sofatrace.title = 'ds_receiver_band'
+        sofatrace.name = 'sock_recv_band'
+        sofatrace.title = 'sockrecv_bandwidth'
         sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'bandwidth'
-        sofatrace.data = ds_traces[3]
+        sofatrace.data = ds_dds_traces[3]
         traces.append(sofatrace)
 
         sofatrace = SOFATrace()
-        sofatrace.name = 'dds_tx_sample'
-        sofatrace.title = 'dss_data_transmit'
+        sofatrace.name = 'dds_pub_sample'
+        sofatrace.title = 'dss_data_write'
         sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'event'
-        sofatrace.data = dds_traces[0]
+        sofatrace.data = ds_dds_traces[4]
         traces.append(sofatrace)
  
         sofatrace = SOFATrace()
-        sofatrace.name = 'dss_rx_sample'
-        sofatrace.title = 'dss_data_receiver'
+        sofatrace.name = 'dss_sub_sample'
+        sofatrace.title = 'dss_data_read'
         sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'event'
-        sofatrace.data = dds_traces[1]
+        sofatrace.data = ds_dds_traces[5]
         traces.append(sofatrace)
+
     if cfg.enable_encode_decode:
         sofatrace = SOFATrace()
         sofatrace.name = 'nvsmi_enc'

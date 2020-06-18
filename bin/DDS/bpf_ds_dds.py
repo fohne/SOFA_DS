@@ -193,7 +193,7 @@ int T_GetTopicName(struct pt_regs *ctx) { // 2:topic name; 3: type_name; ret: to
     u64        tName_p = PT_REGS_PARM2(ctx);
     u64        pid     = bpf_get_current_pid_tgid();
 
-    bpf_probe_read_str(topic.name, 64, (const char *)tName_p);
+    bpf_probe_read_str(topic.name, 20, (const char *)tName_p);
     tName_map.update(&pid, &topic);
 
     return 0;
@@ -368,6 +368,36 @@ int R_MapReader2TopicName(struct pt_regs *ctx) { // 2:topic; ret: reader_p
 
     return 0;
 }
+int uretprobe_v_dataReaderNewBySQL (struct pt_regs *ctx) {
+
+    u64 pid = bpf_get_current_pid_tgid();
+
+    topic_info* t_info_p = tName_map.lookup(&pid);
+    if (t_info_p) {
+
+        u64 v_reader = PT_REGS_RC(ctx);
+        tName_map.update(&v_reader, t_info_p);
+
+    #ifdef DEBUG
+
+        bpf_data data = {};
+        data.recordType = DDS_RECORD;
+
+        data.ts  = bpf_ktime_get_ns();
+        data.pid = pid;
+        bpf_get_current_comm(&(data.comm), sizeof(data.comm));
+
+        data.fun_ID  = FID_VWRITER_NEW;
+        data.fun_ret = 1;
+        bpf_probe_read_str(data.tName, 20, t_info_p->name);
+        data.ret = v_writer;
+        events.perf_submit(ctx, &data, sizeof(data));
+    #endif
+    }
+
+    return 0;
+}
+
 
 /*************************************************************************************************/
 /**                                                                                             **/
@@ -577,14 +607,14 @@ int uretprobe_DDS_DataReader_take(struct pt_regs *ctx) {
 
     u64 sts, ets;
     sts = End_TS(FID_DDSREADER_TAKE, &ets);
-   
+    u64 pid = bpf_get_current_pid_tgid();
 
     bpf_data * data_p = get_bpf_data(FID_DDSREADER_TAKE);
     if (data_p == 0) return 0;
 
     data_p->recordType = DDS_RECORD;
     data_p->ts  = bpf_ktime_get_ns();
-    data_p->pid = bpf_get_current_pid_tgid();
+    data_p->pid = pid;
     bpf_get_current_comm(&(data_p->comm), sizeof(data_p->comm));
 
     data_p->fun_ID  = FID_DDSREADER_TAKE;
@@ -593,7 +623,8 @@ int uretprobe_DDS_DataReader_take(struct pt_regs *ctx) {
     data_p->sts = sts;
     data_p->ets = ets;
     get_topic_info (data_p->pid, data_p);
-
+traceId_map.delete(&pid);
+tName_map.delete(&pid);
     events.perf_submit(ctx, data_p, sizeof(bpf_data));
 
     return 0;
@@ -678,6 +709,17 @@ int uretprobe_do_packet(struct pt_regs *ctx) {
     data.pid = bpf_get_current_pid_tgid();
     bpf_get_current_comm(&(data.comm), sizeof(data.comm));
 
+
+    u64* v_reader_p = ts_map.lookup(&data.pid);
+    if (v_reader_p) {
+        topic_info* t_info_p =  tName_map.lookup(v_reader_p);
+
+        if (t_info_p) {
+             bpf_probe_read_str(data.tName, 20, t_info_p->name);
+
+        }
+    }
+    
     data.fun_ID  = FID_DO_PACKET;
     data.fun_ret = 1;
 
@@ -718,6 +760,8 @@ int do_groupwrite  (struct pt_regs *ctx) {
         data_p->gid_seria = v_mess.writerGID.serial;
         data_p->seqNum    = v_mess.sequenceNumber;
 
+
+
         events.perf_submit(ctx, data_p, sizeof(bpf_data));
     }
 
@@ -741,6 +785,8 @@ int do_groupwrite  (struct pt_regs *ctx) {
 
     return 0;
 }
+
+
 /*************************************************************************************************/
 /**                                                                                             **/
 /**                kprobe for recording packets Tx/Rx messages                                  **/
@@ -968,11 +1014,15 @@ LIBPATH="/home/hermes/workspace/opensplice/install/HDE/x86_64.linux-dev/lib/"
 # Topic information recording
 bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_DomainParticipant_create_topic", fn_name="T_GetTopicName")
 bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_DomainParticipant_create_topic", fn_name="T_MapTopic2TopicName")
+
 bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_Publisher_create_datawriter", fn_name="W_MapPID2Topic")
 bpf.attach_uretprobe(name="%slibddskernel.so"%LIBPATH, sym="v_writerNew", fn_name="W_MapVWriter2TopicName")
 bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_Publisher_create_datawriter", fn_name="W_MapWriter2TopicName")
+
 bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_Subscriber_create_datareader", fn_name="R_MapPID2Topic")
 bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_Subscriber_create_datareader", fn_name="R_MapReader2TopicName")
+bpf.attach_uretprobe(name="%slibddskernel.so"%LIBPATH, sym="v_dataReaderNewBySQL", fn_name="uretprobe_v_dataReaderNewBySQL")
+
 
 
 # Write/Read Records
@@ -990,6 +1040,8 @@ bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="do_packet", fn_name="uprobe
 bpf.attach_uretprobe(name="%slibddsi2.so"%LIBPATH, sym="do_packet", fn_name="uretprobe_do_packet")
 
 bpf.attach_uprobe(name="%slibddsi2.so"%LIBPATH, sym="do_groupwrite", fn_name="do_groupwrite")
+
+
 bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="DDS_ReaderCommon_samples_flush_copy", fn_name="uprobe_DDS_ReaderCommon_samples_flush_copy")
 bpf.attach_uprobe(name="%slibdcpssac.so"%LIBPATH, sym="_DataReader_samples_flush_copy", fn_name="uprobe_DataReader_samples_flush_copy")
 bpf.attach_uretprobe(name="%slibdcpssac.so"%LIBPATH, sym="_DataReader_samples_flush_copy", fn_name="uretprobe_DataReader_samples_flush_copy")
@@ -1010,9 +1062,9 @@ bpf.attach_kretprobe(event="sock_recvmsg", fn_name="kretprobe_sock_recvmsg")
 def print_event(cpu, data, size):
     event = bpf["events"].event(data)
     if 1:
-        print("%14d,%14d,%14d,%2d,%14d,%4d,%20s,%14s,%6d,%12d,%8d,%8d,%14d,%14d,%14d,%14d,%14d,%14d,%14d,%14s" % 
-             (event.ts,event.sts,event.ets,
-              event.recordType, event.pid, event.fun_ID, event.tName, event.comm,
+        print("%14d,%14d,%14d,%2d,%14d,%4d,%20s,%14s,%6d,%12d,%8d,%8d,%14d,%14d,%14d,%14d,%14d,%14d,%14d,%14d" % 
+             (event.ts, event.sts, event.ets,
+              event.recordType, event.pid, event.fun_ID, str(event.tName, "utf-8"), str(event.comm, "utf-8"),
               event.seqNum, event.gid_sys, event.gid_local, event.gid_seria,
               event.arg1, event.arg2, event.arg3,
               event.arg4, event.arg5, event.arg6,

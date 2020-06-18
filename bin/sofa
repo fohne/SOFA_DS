@@ -18,7 +18,7 @@ from sofa_preprocess import *
 from sofa_print import *
 from sofa_record import *
 from sofa_viz import *
-from sofa_ds import ds_preprocess
+from DDS.sofa_ds import ds_preprocess
 
 if __name__ == "__main__":
     cfg = SOFA_Config()
