@@ -60,5 +60,5 @@ def ds_preprocess(cfg):
 
     pid2y_pos_dic = ds_connect_preprocess(cfg)
     dds_calc_topic_latency(cfg)
-    #ds_dds_create_span(cfg)
+    ds_dds_create_span(cfg)
 

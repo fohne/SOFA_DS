@@ -4,7 +4,7 @@ from bcc import BPF
 intrucode="""
 BPF_PERF_OUTPUT(events);
 
-//#define DEBUG 
+#undef DEBUG 
 
 #define    DDS_RECORD     1
 #define   SOCK_RECORD     2
@@ -390,7 +390,7 @@ int uretprobe_v_dataReaderNewBySQL (struct pt_regs *ctx) {
         data.fun_ID  = FID_VWRITER_NEW;
         data.fun_ret = 1;
         bpf_probe_read_str(data.tName, 20, t_info_p->name);
-        data.ret = v_writer;
+
         events.perf_submit(ctx, &data, sizeof(data));
     #endif
     }
@@ -587,17 +587,18 @@ int uprobe_DDS_DataReader_take(struct pt_regs *ctx) {
      }
     #ifdef DEBUG
 
-        bpf_data data = {};
-        data.recordType = DDS_RECORD;
+        bpf_data dg_data = {};
+        dg_data = data;
+        dg_data.recordType = DDS_RECORD;
 
-        data.ts  = bpf_ktime_get_ns();
-        data.pid = bpf_get_current_pid_tgid();
-        bpf_get_current_comm(&(data.comm), sizeof(data.comm));
+        dg_data.ts  = bpf_ktime_get_ns();
+        dg_data.pid = bpf_get_current_pid_tgid();
+        bpf_get_current_comm(&(dg_data.comm), sizeof(dg_data.comm));
 
-        data.fun_ID  = FID_DDSREADER_TAKE;
-        data.fun_ret = 0;
+        dg_data.fun_ID  = FID_DDSREADER_TAKE;
+        dg_data.fun_ret = 0;
 
-        events.perf_submit(ctx, &data, sizeof(data));
+        events.perf_submit(ctx, &dg_data, sizeof(dg_data));
     #endif
     
     return 0;
@@ -653,16 +654,22 @@ int uprobe_DDS_ReaderCommon_samples_flush_copy(struct pt_regs *ctx) { // 1:data 
     v_message v_mess;
     bpf_probe_read(&v_mess.writerGID, sizeof(v_gid), (const void *)pv_mess + offsetof(v_message, writerGID));
     bpf_probe_read(&v_mess.sequenceNumber, sizeof(u32), (const void *)pv_mess + offsetof(v_message, sequenceNumber));
-    bpf_data data = {};
+
     u64 reader_p;
-    u64 pid = data.pid;
+    u64 pid = bpf_get_current_pid_tgid();
+
     reader_p = (u64)ts_map.lookup(&pid);
+
+
+
+
+
     if (reader_p) {
         topic_info  t_info = {};
         topic_info* t_info_p =  tName_map.lookup((u64 *)reader_p);
 
         if (t_info_p) {
-            bpf_probe_read_str(data.tName, 20, t_info_p->name);
+
             tName_map.update(&pid, t_info_p);
             traceId  trace_id = {};
             trace_id.gid.systemId = v_mess.writerGID.systemId;
@@ -672,11 +679,11 @@ int uprobe_DDS_ReaderCommon_samples_flush_copy(struct pt_regs *ctx) { // 1:data 
             traceId_map.update(&pid, &trace_id);
         }
     }
-    #ifdef DEBUF
+    #ifdef DEBUG
 
-
+        bpf_data data = {};
         data.ts  = bpf_ktime_get_ns();
-        data.pid = bpf_get_current_pid_tgid();
+        data.pid = pid;
         bpf_get_current_comm(&(data.comm), sizeof(data.comm));
 
         data.fun_ID = FID_DDSREADER_FLUSH_COPY;
@@ -1068,7 +1075,7 @@ def print_event(cpu, data, size):
               event.seqNum, event.gid_sys, event.gid_local, event.gid_seria,
               event.arg1, event.arg2, event.arg3,
               event.arg4, event.arg5, event.arg6,
-              event.link, event.ret))
+              event.link, event.fun_ret))
     else:
         pass
 

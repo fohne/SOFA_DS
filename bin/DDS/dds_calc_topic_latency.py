@@ -39,8 +39,7 @@ def dds_calc_topic_latency(cfg):
                    'gid_sys', 'gid_local', 'gid_seria', 'arg1', 'arg2', 'arg3', 'arg4', 'arg5', 'arg6', 'link', 'ret']
 
     all_dds_df = pd.DataFrame([], columns=dds_trace_field)
-    #a = highchart_annotation_label()
-    #c = json.dumps(a.__dict__)
+
     pid_yPos_dic = {} 
     yPos_cnt = 0
     pid_ip_dic = {}
@@ -72,10 +71,6 @@ def dds_calc_topic_latency(cfg):
 
         dds_df = pd.read_csv('%s/dds_trace_%s'%(nd_dir_iter, nd_dir_iter), sep=',\s+', delimiter=',', encoding="utf-8",
                             skipinitialspace=True, header=0, float_precision='round_trip')
-
-            
-
-
 
         all_dds_df = pd.concat([dds_df, all_dds_df], ignore_index=True, sort=False)
 

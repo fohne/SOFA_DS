@@ -2102,7 +2102,7 @@ def sofa_preprocess(cfg):
 
         sofatrace = SOFATrace()
         sofatrace.name = 'sock_recv'
-        sofatrace.title = 'sock_ecvmsg'
+        sofatrace.title = 'sock_recvmsg'
         sofatrace.color = 'rgba(255, 33, 44, 0.8)'
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'deviceId'
@@ -2111,7 +2111,7 @@ def sofa_preprocess(cfg):
 
         sofatrace = SOFATrace()
         sofatrace.name = 'sock_send_band'
-        sofatrace.title = 'socksend_bandwidth'
+        sofatrace.title = 'send_bandwidth'
         sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'bandwidth'
@@ -2120,7 +2120,7 @@ def sofa_preprocess(cfg):
 
         sofatrace = SOFATrace()
         sofatrace.name = 'sock_recv_band'
-        sofatrace.title = 'sockrecv_bandwidth'
+        sofatrace.title = 'recv_bandwidth'
         sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
         sofatrace.x_field = 'timestamp'
         sofatrace.y_field = 'bandwidth'

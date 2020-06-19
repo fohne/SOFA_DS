@@ -79,15 +79,16 @@ def ds_create_viz(ds_logpath, nodes_record_dir):
     f = open('%s/../../sofaboard/connect_timeline.js' % sofa_home)
     span_view_timeline = f.read()
     f.close()
-    span_view_timeline.replace('container', 'container_span')
-
+    span_view_timeline = span_view_timeline.replace('container', 'container_span')
+    span_view_timeline = span_view_timeline.replace('sofa_traces_connect', 'sofa_traces_span')
+    print(span_view_timeline)
 
 
     f = open('span_timeline.js', 'w')
     f.write(span_view_timeline)
     f.close()  
     top_index = top_index + \
-              '\n        <div id="container" style="min-width: 310px; height: 400px; max-width: 90%%; margin: 0 auto"></div>'
+              '\n        <div id="container_span" style="min-width: 310px; height: 400px; max-width: 90%%; margin: 0 auto"></div>'
     top_index = top_index + '\n        <script src="span_view.js"></script>'
     top_index = top_index + '\n        <script src="span_timeline.js"></script>\n'
 
