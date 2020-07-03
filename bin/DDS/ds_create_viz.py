@@ -54,7 +54,7 @@ def ds_create_viz(ds_logpath, nodes_record_dir):
     f = open('%s/../../sofaboard/connect_timeline.js' % sofa_home)
     connection_view_timeline = f.read()
     f.close()
-
+    connection_view_timeline = connection_view_timeline.replace('Node Connection View in Distributed System', 'OpenSplice Node Connection View')
     loc = connection_view_timeline.find("// categories: ['A', 'B'],")
     loc = loc + len("// categories: ['A', 'B'],")
     top_connection_view_timeline = connection_view_timeline[:loc]
@@ -81,8 +81,8 @@ def ds_create_viz(ds_logpath, nodes_record_dir):
     f.close()
     span_view_timeline = span_view_timeline.replace('container', 'container_span')
     span_view_timeline = span_view_timeline.replace('sofa_traces_connect', 'sofa_traces_span')
-    print(span_view_timeline)
-
+    span_view_timeline = span_view_timeline.replace('Nodes', 'Spans')
+    span_view_timeline = span_view_timeline.replace('Node Connection View in Distributed System', 'OpenSplice Data Trace Spans')
 
     f = open('span_timeline.js', 'w')
     f.write(span_view_timeline)
