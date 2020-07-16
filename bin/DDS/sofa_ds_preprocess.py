@@ -295,14 +295,15 @@ def ds_dds_create_span(cfg):
     for ds_trace in all_ds_list:
 
         vid_seq = str(ds_trace[10]) + str(ds_trace[11]) + str(ds_trace[12]) + str(ds_trace[9])
-
+        #print(vid_seq)
         if vid_seq not in vid_seq_map:
             vid_seq_map[str(vid_seq)] = []
             vid_seq_map[str(vid_seq)].append(ds_trace)
         else:
             vid_seq_map[str(vid_seq)].append(ds_trace)
 
-    fix_df = pd.DataFrame([], columns=trace_field)                            
+    fix_df = pd.DataFrame([], columns=trace_field)
+    seq_map_cnt = 0
     for vid_seq in vid_seq_map:
         if len(vid_seq_map[vid_seq]) == 6:
             _df = pd.DataFrame(vid_seq_map[vid_seq],columns=trace_field)
@@ -329,11 +330,13 @@ def ds_dds_create_span(cfg):
 
             vid_seq_map[vid_seq] = _df.values.tolist()
             for i in vid_seq_map[vid_seq]:
-                print(i)
+                seq_map_cnt = seq_map_cnt+1
                 pass
 
-            print("\n")
-    fix_df.sort_values('timestamp')
+            #print("\n")
+    #print(seq_map_cnt)
+    #fix_df = fix_df.sort_values('timestamp')
+
     span_list = fix_df.values.tolist()
     span4SOFA = []
     for ds_trace in span_list:
@@ -342,8 +345,11 @@ def ds_dds_create_span(cfg):
         y1 = ds_trace[1]
         y2 = ds_trace[2]
         funName = funID2funName(ds_trace[6])
-        y1_info = funName + '<br> Start time: ' + str(ds_trace[0] + ds_trace[1]) + 's'
-        y2_info = funName +   '<br> End time: ' + str(ds_trace[0] + ds_trace[2]) + 's'
+        topicInfo = ' &lt;' + str(ds_trace[7]) + ':' + str(ds_trace[9]) + '&gt;'
+
+        y1_info = funName + topicInfo + '<br> Start time: ' + str(ds_trace[0] + ds_trace[1]) + 's'
+
+        y2_info = funName + topicInfo + '<br> End time: ' + str(ds_trace[0] + ds_trace[2]) + 's'
         span4SOFA.append([x,y1,y1_info])
         span4SOFA.append([x,y2,y2_info])
         span4SOFA.append([None,None,''])

@@ -23,6 +23,7 @@ Highcharts.chart('container', {
       dataLabels: {
         enabled: true
       },
+      findNearestPointBy: 'xy',
       enableMouseTracking: true,
       boostThreshold:1,
       turboThreshold: 0,
