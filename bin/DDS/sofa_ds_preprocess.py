@@ -291,17 +291,32 @@ def ds_dds_create_span(cfg):
 
 
     vid_seq_map = {}
+    vidToIp_map = {}
     all_ds_list = all_ds_df.values.tolist()
     for ds_trace in all_ds_list:
 
         vid_seq = str(ds_trace[10]) + str(ds_trace[11]) + str(ds_trace[12]) + str(ds_trace[9])
-        #print(vid_seq)
         if vid_seq not in vid_seq_map:
             vid_seq_map[str(vid_seq)] = []
             vid_seq_map[str(vid_seq)].append(ds_trace)
         else:
             vid_seq_map[str(vid_seq)].append(ds_trace)
 
+        if (ds_trace[6] == 20):
+            vidToIP = str(ds_trace[10]) + str(ds_trace[11]) + str(ds_trace[12]) 
+            if vidToIP not in vidToIp_map:
+                vidToIp_map[str(vidToIP)] = str(  ds_trace[13]        & 0x000000FF) + "." \
+                                          + str(( ds_trace[13] >>  8) & 0x000000FF) + "." \
+                                          + str(( ds_trace[13] >> 16) & 0x000000FF) + "." \
+                                          + str(( ds_trace[13] >> 24) & 0x000000FF) + ":" \
+                                          + str(( ds_trace[15] >>  8) &     0x00FF| (ds_trace[15] <<  8) &     0xFF00)
+                print(vidToIP)
+                print(vidToIp_map[str(vidToIP)])
+
+
+
+    fix_df_dic = {}
+    pd.set_option("display.precision", 8)
     fix_df = pd.DataFrame([], columns=trace_field)
     seq_map_cnt = 0
     for vid_seq in vid_seq_map:
@@ -310,7 +325,7 @@ def ds_dds_create_span(cfg):
 
             fix_topic = 0
             rebase_span_timeline = 0
-            
+            SIP2DIP = 0
             for ds_trace in vid_seq_map[vid_seq]:
                 if str(ds_trace[7]) !='nan' and not fix_topic:
                     topic_name = str(ds_trace[7]) 
@@ -324,92 +339,67 @@ def ds_dds_create_span(cfg):
                     _df[  'end_ts'] = _df[  'end_ts'].apply(lambda x: x - baseStime4eachtrace)
                     rebase_span_timeline = 1
 
-                if rebase_span_timeline and fix_topic:
+                if not SIP2DIP and ds_trace[6] == 20 :
+                    SIP = str(  ds_trace[13]        & 0x000000FF) + "." \
+                        + str(( ds_trace[13] >>  8) & 0x000000FF) + "." \
+                        + str(( ds_trace[13] >> 16) & 0x000000FF) + "." \
+                        + str(( ds_trace[13] >> 24) & 0x000000FF) + ":" \
+                        + str(( ds_trace[15] >>  8) &     0x00FF| (ds_trace[15] <<  8) &     0xFF00)
+                    DIP = str(  ds_trace[14]        & 0x000000FF) + "." \
+                        + str(( ds_trace[14] >>  8) & 0x000000FF) + "." \
+                        + str(( ds_trace[14] >> 16) & 0x000000FF) + "." \
+                        + str(( ds_trace[14] >> 24) & 0x000000FF) + ":" \
+                        + str(( ds_trace[16] >>  8) &     0x00FF| (ds_trace[16] <<  8) &     0xFF00)
+                    SIP2DIP = SIP + " to " + DIP
+
+                here_not_classify = """
+                if rebase_span_timeline and fix_topic and SIP2DIP:
                     fix_df = pd.concat([fix_df, _df], ignore_index=True, sort=False)
                     break
+                """
+                if rebase_span_timeline and fix_topic and SIP2DIP:
+                    if SIP2DIP not in fix_df_dic:
+                        fix_df_dic[SIP2DIP] = pd.DataFrame([], columns=trace_field)
+                        fix_df_dic[SIP2DIP] = pd.concat([fix_df_dic[SIP2DIP], _df], ignore_index=True, sort=False)
+                    else:
+                        fix_df_dic[SIP2DIP] = pd.concat([fix_df_dic[SIP2DIP], _df], ignore_index=True, sort=False)
+                    break
 
-            vid_seq_map[vid_seq] = _df.values.tolist()
-            for i in vid_seq_map[vid_seq]:
-                seq_map_cnt = seq_map_cnt+1
-                pass
-
-            #print("\n")
-    #print(seq_map_cnt)
-    #fix_df = fix_df.sort_values('timestamp')
-
-    span_list = fix_df.values.tolist()
-    span4SOFA = []
-    for ds_trace in span_list:
-
-        x  = ds_trace[0]
-        y1 = ds_trace[1]
-        y2 = ds_trace[2]
-        funName = funID2funName(ds_trace[6])
-        topicInfo = ' &lt;' + str(ds_trace[7]) + ':' + str(ds_trace[9]) + '&gt;'
-
-        y1_info = funName + topicInfo + '<br> Start time: ' + str(ds_trace[0] + ds_trace[1]) + 's'
-
-        y2_info = funName + topicInfo + '<br> End time: ' + str(ds_trace[0] + ds_trace[2]) + 's'
-        span4SOFA.append([x,y1,y1_info])
-        span4SOFA.append([x,y2,y2_info])
-        span4SOFA.append([None,None,''])
-
+            vid_seq_map[vid_seq] = _df.values.tolist() # Write back fix trace in map
 
     traces = []
-    span_trace = pd.DataFrame(span4SOFA, columns = ['x','y','name'])
-    sofatrace = SOFATrace()
-    sofatrace.name = 'DDS_span_view' 
-    sofatrace.title = 'DDS_Span'
-    sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
-    sofatrace.x_field = 'x'
-    sofatrace.y_field = 'y'
-    sofatrace.data = span_trace
-    traces.append(sofatrace)
+    span_cnt = 0
+    for fix_df in fix_df_dic:
+        span_cnt += 1
+        span_list = fix_df_dic[fix_df].values.tolist()
+        span4SOFA = []
 
-    traces_to_json(traces, 'span_view.js', cfg, '_span')  
+        for ds_trace in span_list:
+            x  = ds_trace[0]
+            y1 = ds_trace[1]
+            y2 = ds_trace[2]
+            execution_time = y2 - y1
 
+            funName = funID2funName(ds_trace[6])
+            topicInfo = ' &lt;' + str(ds_trace[7]) + ':' + str(ds_trace[9]) + '&gt;'
+            y1_info = funName + topicInfo + '<br> Start time: ' + str(format(ds_trace[0] + ds_trace[1], '.6f')) + 's' + "<br> Execution time: " + str(format(execution_time*1000, '.3f')) + "ms"
+            y2_info = funName + topicInfo + '<br> End time: ' +   str(format(ds_trace[0] + ds_trace[2], '.6f')) + 's' + "<br> Execution time: " + str(format(execution_time*1000, '.3f')) + "ms"
+            span4SOFA.append([x,y1,y1_info])
+            span4SOFA.append([x,y2,y2_info])
+            span4SOFA.append([None,None,''])
 
-    d = '''
-        
-    span4SOFA = []
-    for row in range(len(df_in_process)):
-        tmp_df = df_in_process[row]
-        x = tmp_df['timestamp']
-        y1 = tmp_df['start_ts']
-        y2 = tmp_df['end_ts']
-        y1_info = 'functionID: ' + str(tmp_df['Fun_ID']) + ' Start time:' + str(tmp_df['timestamp'])
-        y2_info = 'functionID: ' + str(tmp_df['Fun_ID']) + ' End time:' + str(tmp_df['timestamp'] + tmp_df['end_ts'])
-        table4SOFA.append([x,y1,y1_info])
-        table4SOFA.append([x,y2,y2_info])
+        span_trace = pd.DataFrame(span4SOFA, columns = ['x','y','name'])
+        sofatrace = SOFATrace()
+        sofatrace.name = 'DDS_span_view' + str(span_cnt)
+        sofatrace.title = fix_df
+        sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
+        sofatrace.x_field = 'x'
+        sofatrace.y_field = 'y'
+        sofatrace.data = span_trace
+        traces.append(sofatrace)
 
-    field4sofa = ['x', 'y', 'info']
-    df4sofa = pd.DataFrame(table4SOFA, columns=field4sofa)
-    df4sofa.sort_values('x')
+    traces_to_json(traces, 'span_view.js', cfg, '_span')
 
-    cnct_trace = []
-    for row in range(len(df4sofa)):
-        if row%2 == 0:
-            cnct_trace.append(create_span_in_hightchart(df4sofa[row]['x'], df4sofa[row]['y'], df4sofa[row]['info']))
-
-        else:
-            cnct_trace.append(create_span_in_hightchart(df4sofa[row]['x'], df4sofa[row]['y'], df4sofa[row]['info']))
-            cnct_trace.append(ds_cnct_trace_init())
-                    
-        
-    cnct_trace = pd.DataFrame(cnct_trace, columns = ['name','x','y'])
-
-    sofatrace = SOFATrace()
-    sofatrace.name = 'DDS_span_view' 
-    sofatrace.title = 'DDS_Span'
-    sofatrace.color = 'rgba(%s,%s,%s,0.8)' %(random.randint(0,255),random.randint(0,255),random.randint(0,255))
-    sofatrace.x_field = 'x'
-    sofatrace.y_field = 'y'
-    sofatrace.data = cnct_trace
-    traces.append(sofatrace)
-
-    traces_to_json(traces, 'span_view.js', cfg, '')      
-
-    '''
 # Not used
 def ds_find_sender(recv_iter, all_send_index_list, send_find, send_canidate, latency, negative,total_latency):
 
